@@ -75,6 +75,12 @@ class StaticPlaylists:
         # TRANSLATORS: this is a playlist name
         TITLE = _("Favorite Songs")
 
+    #Smart playlists class added
+    # class Smart Playlists:
+    #     ID = None
+    #     TAG_TEXT = "SMART_PLAYLISTS"
+    #     TITLE = _("Smart Playlists")
+
     def __init__(self):
         Query()
         self.MostPlayed.QUERY = Query.get_most_played_songs()

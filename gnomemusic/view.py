@@ -92,7 +92,7 @@ class ViewContainer(Gtk.Stack):
             shadow_type=Gtk.ShadowType.NONE
         )
         self.view.set_view_type(view_type)
-        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self._box = Gtk.Box(orientation=Gtk.Orientation.ViewContainer)
         self._box.pack_start(self.view, True, True, 0)
         if use_sidebar:
             self.stack = Gtk.Stack(
@@ -794,7 +794,7 @@ class Artists (ViewContainer):
             else:
                 self.items_selected_callback(self.items_selected)
 
-
+#Benjamin
 class Playlist(ViewContainer):
     __gsignals__ = {
         'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
@@ -808,7 +808,7 @@ class Playlist(ViewContainer):
     def __init__(self, window, player):
         self.playlists_sidebar = Gd.MainView()
 
-        ViewContainer.__init__(self, 'playlists', _("Playlists"), window,
+        ViewContainer.__init__(self, 'playlists', _("JukeBox"), window,
                                Gd.MainViewType.LIST, True, self.playlists_sidebar)
 
         self.view.get_generic_view().get_style_context()\
