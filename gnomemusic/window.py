@@ -216,6 +216,7 @@ class Window(Gtk.ApplicationWindow):
 
             if count > 0:
                 self._switch_to_player_view()
+                ################################################################################
             # To revert to the No Music View when no songs are found
             else:
                 if self.toolbar._selectionMode is False:

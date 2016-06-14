@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 playlists = Playlists.get_default()
 
-
+#Other classes
 class ViewContainer(Gtk.Stack):
     nowPlayingIconName = 'media-playback-start-symbolic'
     errorIconName = 'dialog-error-symbolic'
@@ -92,7 +92,7 @@ class ViewContainer(Gtk.Stack):
             shadow_type=Gtk.ShadowType.NONE
         )
         self.view.set_view_type(view_type)
-        self._box = Gtk.Box(orientation=Gtk.Orientation.ViewContainer)
+        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self._box.pack_start(self.view, True, True, 0)
         if use_sidebar:
             self.stack = Gtk.Stack(
@@ -214,7 +214,209 @@ class ViewContainer(Gtk.Stack):
             return
 
         self._offset += 1
-        artist = item.get_artist() or _("Unknown Artist")
+        artist = item.get_string(Grl.METADATA_KEY_ARTIST)\
+            or item.get_author()\
+            or _("Unknown Artist")
+        title = albumArtCache.get_media_title(item)
+        # item.set_title(title)
+
+        _iter = self.model.append(None)
+        self.model.set(_iter,
+                       [0, 1, 2, 3, 4, 5, 7, 9],
+                       [str(item.get_id()), '', title,
+                        artist, self._loadingIcon, item,
+                        0, False])
+        self.cache.lookup(item, self._iconWidth, self._iconHeight, self._on_lookup_ready,
+                          _iter, artist, title)
+
+    @log
+    def _on_lookup_ready(self, icon, path, _iter):
+        if icon:
+            self.model.set_value(_iter, 4, icon)
+
+    @log
+    def _add_list_renderers(self):
+        pass
+
+    @log
+    def _on_item_activated(self, widget, id, path):
+        pass
+
+    @log
+    def _on_selection_mode_request(self, *args):
+        self.header_bar._select_button.clicked()
+
+    @log
+    def get_selected_tracks(self, callback):
+        callback([])
+
+    def _on_list_widget_star_render(self, col, cell, model, _iter, data):
+        pass
+
+#Class for the playlists
+class PlayViewContainer(Gtk.Stack):
+    nowPlayingIconName = 'media-playback-start-symbolic'
+    errorIconName = 'dialog-error-symbolic'
+
+    def __repr__(self):
+        return '<ViewContainer>'
+
+    @log
+    def __init__(self, name, title, window, view_type, use_sidebar=False, sidebar=None):
+        Gtk.Stack.__init__(self,
+                           transition_type=Gtk.StackTransitionType.CROSSFADE)
+        self._grid = Gtk.Grid(orientation=Gtk.Orientation.HORIZONTAL)
+        self._iconWidth = 128
+        self._iconHeight = 128
+        #self.use_sidebar = False
+        self._offset = 0
+        self._adjustmentValueId = 0
+        self._adjustmentChangedId = 0
+        self._scrollbarVisibleId = 0
+        self.old_vsbl_range = None
+        self.model = Gtk.ListStore(
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GdkPixbuf.Pixbuf,
+            GObject.TYPE_OBJECT,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_INT,
+            GObject.TYPE_STRING,
+            GObject.TYPE_INT,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_INT
+        )
+        self.view = Gd.MainView(
+            shadow_type=Gtk.ShadowType.NONE
+        )
+        self.view.set_view_type(view_type)
+        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self._box.pack_start(self.view, True, True, 0)
+        if use_sidebar:
+            self.stack = Gtk.Stack(
+                transition_type=Gtk.StackTransitionType.SLIDE_RIGHT,
+            )
+            dummy = Gtk.Frame(visible=False)
+            self.stack.add_named(dummy, 'dummy')
+            if sidebar:
+                self.stack.add_named(sidebar, 'sidebar')
+            else:
+                self.stack.add_named(self._box, 'sidebar')
+            self.stack.set_visible_child_name('dummy')
+            self._grid.add(self.stack)
+        if not use_sidebar or sidebar:
+            self._grid.add(self._box)
+
+        self.star_handler = Widgets.StarHandler(self, 9)
+        self.view.click_handler = self.view.connect('item-activated', self._on_item_activated)
+        # self.star_handler.star_renderer_click = False
+        self.view.connect('selection-mode-request', self._on_selection_mode_request)
+        self._cursor = None
+        self.window = window
+        self.header_bar = window.toolbar
+        self.selection_toolbar = window.selection_toolbar
+        self.header_bar._select_button.connect(
+            'toggled', self._on_header_bar_toggled)
+        self.header_bar._cancel_button.connect(
+            'clicked', self._on_cancel_button_clicked)
+
+        self.name = name
+        self.title = title
+        self.add(self._grid)
+
+        self.show_all()
+        self.view.hide()
+        self._items = []
+        self.cache = albumArtCache.get_default()
+        self._loadingIcon = self.cache.get_default_icon(self._iconWidth, self._iconHeight, True)
+
+        self._init = False
+        grilo.connect('ready', self._on_grilo_ready)
+        self.selection_socket = None
+        self.header_bar.connect('selection-mode-changed',
+                                self._on_selection_mode_changed)
+
+        self._discovering_urls = {}
+        grilo.connect('changes-pending', self._on_changes_pending)
+
+    @log
+    def _on_changes_pending(self, data=None):
+        pass
+
+    @log
+    def _on_header_bar_toggled(self, button):
+        if button.get_active():
+            self.view.set_selection_mode(True)
+            self.header_bar.set_selection_mode(True)
+            self.player.actionbar.set_visible(False)
+            self.selection_toolbar.actionbar.set_visible(True)
+            self.selection_toolbar._add_to_playlist_button.set_sensitive(False)
+            self.selection_toolbar._remove_from_playlist_button.set_sensitive(False)
+        else:
+            self.view.set_selection_mode(False)
+            self.header_bar.set_selection_mode(False)
+            self.player.actionbar.set_visible(self.player.currentTrack is not None)
+            self.selection_toolbar.actionbar.set_visible(False)
+
+    @log
+    def _on_cancel_button_clicked(self, button):
+        self.view.set_selection_mode(False)
+        self.header_bar.set_selection_mode(False)
+
+    @log
+    def _on_grilo_ready(self, data=None):
+        if (self.header_bar.get_stack().get_visible_child() == self and not self._init):
+            self._populate()
+        self.header_bar.get_stack().connect('notify::visible-child',
+                                            self._on_headerbar_visible)
+
+    @log
+    def _on_headerbar_visible(self, widget, param):
+        if self == widget.get_visible_child() and not self._init:
+            self._populate()
+
+    @log
+    def _on_view_selection_changed(self, widget):
+        items = self.view.get_selection()
+        self.selection_toolbar._add_to_playlist_button.\
+            set_sensitive(len(items) > 0)
+        self.selection_toolbar._remove_from_playlist_button.\
+            set_sensitive(len(items) > 0)
+        if len(items) > 0:
+            self.header_bar._selection_menu_label.set_text(
+                ngettext("Selected %d item", "Selected %d items", len(items)) % len(items))
+        else:
+            self.header_bar._selection_menu_label.set_text(_("Click on items to select them"))
+
+    @log
+    def _populate(self, data=None):
+        self._init = True
+        self.populate()
+
+    @log
+    def _on_selection_mode_changed(self, widget, data=None):
+        pass
+
+    @log
+    def populate(self):
+        print('populate')
+
+    @log
+    def _add_item(self, source, param, item, remaining=0, data=None):
+        self.window.notification.set_timeout(0)
+        if not item:
+            if remaining == 0:
+                self.view.set_model(self.model)
+                self.window.notification.dismiss()
+                self.view.show()
+            return
+
+        self._offset += 1
+        artist = item.get_string(Grl.METADATA_KEY_ARTIST)\
+            or item.get_author()\
+            or _("Unknown Artist")
         title = albumArtCache.get_media_title(item)
         # item.set_title(title)
 
@@ -472,7 +674,9 @@ class Songs(ViewContainer):
             return
         self._offset += 1
         item.set_title(albumArtCache.get_media_title(item))
-        artist = item.get_artist() or _("Unknown Artist")
+        artist = item.get_string(Grl.METADATA_KEY_ARTIST)\
+            or item.get_author()\
+            or _("Unknown Artist")
         if item.get_url() is None:
             return
         self.model.insert_with_valuesv(
@@ -570,7 +774,7 @@ class Songs(ViewContainer):
     def _on_list_widget_type_render(self, coll, cell, model, _iter, data):
         item = model.get_value(_iter, 5)
         if item:
-            cell.set_property('text', item.get_album() or _("Unknown Album"))
+            cell.set_property('text', item.get_string(Grl.METADATA_KEY_ALBUM) or _("Unknown Album"))
 
     def _on_list_widget_icon_render(self, col, cell, model, _iter, data):
         if not self.player.currentTrackUri:
@@ -724,7 +928,9 @@ class Artists (ViewContainer):
                 self.view.show()
             return
         self._offset += 1
-        artist = item.get_artist() or _("Unknown Artist")
+        artist = item.get_string(Grl.METADATA_KEY_ARTIST)\
+            or item.get_author()\
+            or _("Unknown Artist")
         if not artist.casefold() in self._artists:
             _iter = self.model.insert_with_valuesv(-1, [2], [artist])
             self._artists[artist.casefold()] = {'iter': _iter, 'albums': [], 'widget': None}
@@ -794,8 +1000,8 @@ class Artists (ViewContainer):
             else:
                 self.items_selected_callback(self.items_selected)
 
-#Benjamin
-class Playlist(ViewContainer):
+#Benjamin code change
+class Playlist(PlayViewContainer):
     __gsignals__ = {
         'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
         'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
@@ -982,7 +1188,7 @@ class Playlist(ViewContainer):
 
         item = model.get_value(_iter, 5)
         if item:
-            cell.set_property('text', item.get_album() or _("Unknown Album"))
+            cell.set_property('text', item.get_string(Grl.METADATA_KEY_ALBUM) or _("Unknown Album"))
 
     def _on_list_widget_icon_render(self, col, cell, model, _iter, data):
         if not self.player.currentTrackUri:
@@ -1155,7 +1361,9 @@ class Playlist(ViewContainer):
         self._offset += 1
         title = albumArtCache.get_media_title(item)
         item.set_title(title)
-        artist = item.get_artist() or _("Unknown Artist")
+        artist = item.get_string(Grl.METADATA_KEY_ARTIST)\
+            or item.get_author()\
+            or _("Unknown Artist")
         model.insert_with_valuesv(
             -1,
             [2, 3, 5, 9],
@@ -1445,14 +1653,17 @@ class Search(ViewContainer):
         if data != self.model:
             return
 
-        artist = item.get_artist() or _("Unknown Artist")
-        album = item.get_album() or _("Unknown Album")
+        artist = item.get_string(Grl.METADATA_KEY_ARTIST) \
+            or item.get_author() \
+            or _("Unknown Artist")
+        album = item.get_string(Grl.METADATA_KEY_ALBUM) \
+            or _("Unknown Album")
 
         key = '%s-%s' % (artist, album)
         if key not in self._albums:
             self._albums[key] = Grl.Media()
             self._albums[key].set_title(album)
-            self._albums[key].add_artist(artist)
+            self._albums[key].add_author(artist)
             self._albums[key].set_source(source.get_id())
             self._albums[key].tracks = []
             self._add_item(source, None, self._albums[key], 0, [self.model, 'album'])
@@ -1494,7 +1705,9 @@ class Search(ViewContainer):
         self._offset += 1
         title = albumArtCache.get_media_title(item)
         item.set_title(title)
-        artist = item.get_artist() or _("Unknown Artist")
+        artist = item.get_string(Grl.METADATA_KEY_ARTIST) \
+            or item.get_author() \
+            or _("Unknown Artist")
 
         group = 3
         try:
