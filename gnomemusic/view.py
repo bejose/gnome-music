@@ -294,6 +294,7 @@ class PlayViewContainer(Gtk.Stack):
         self.view.set_view_type(view_type)
         self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self._box.pack_start(self.view, True, True, 0)
+        #Edit sidebar hide view
         if use_sidebar:
             self.stack = Gtk.Stack(
                 transition_type=Gtk.StackTransitionType.SLIDE_RIGHT,
@@ -837,7 +838,7 @@ class Artists (ViewContainer):
         self._add_list_renderers()
         self.view.get_generic_view().get_style_context().remove_class('content-view')
         self.show_all()
-        self.view.hide()
+        # self.view.hide()
 
     @log
     def _on_changes_pending(self, data=None):
@@ -1018,7 +1019,6 @@ class Playlist(PlayViewContainer):
 
         ViewContainer.__init__(self, 'playlists', _("JukeBox"), window,
                                Gd.MainViewType.LIST, True, self.playlists_sidebar)
-
         self.view.get_generic_view().get_style_context()\
             .add_class('songs-list')
         self._add_list_renderers()
@@ -1075,8 +1075,14 @@ class Playlist(PlayViewContainer):
         self.pl_todelete_index = None
         self.really_delete = True
         self.songs_count = 0
-        self.window = window
         self._update_songs_count()
+        #########################
+        if self.songs_count == 0: #and self.current_playlist == None:
+            self.hide()
+        else:
+            pass
+        self.window = window
+        # self._update_songs_count()
         self.player = player
         self.player.connect('playlist-item-changed', self.update_model)
         playlists.connect('playlist-created', self._on_playlist_created)
@@ -1084,6 +1090,7 @@ class Playlist(PlayViewContainer):
         playlists.connect('song-added-to-playlist', self._on_song_added_to_playlist)
         playlists.connect('song-removed-from-playlist', self._on_song_removed_from_playlist)
         self.show_all()
+        # self.hide()
 
     @log
     def _on_changes_pending(self, data=None):
