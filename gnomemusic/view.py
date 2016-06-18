@@ -469,6 +469,7 @@ class Empty(Gtk.Stack):
         widget = self.builder.get_object('container')
         self.update_empty_state_link()
         self.add(widget)
+        # Gtk.Widget.hide(self.playlists_sidebar)
         self.show_all()
 
     def update_empty_state_link(self):
@@ -1013,6 +1014,7 @@ class Playlist(PlayViewContainer):
     @log
     def __init__(self, window, player):
         self.playlists_sidebar = Gd.MainView()
+        # self.playlists_sidebar = Gtk.Widget.hide()
 
         ViewContainer.__init__(self, 'playlists', _("JukeBox"), window,
                                Gd.MainViewType.LIST, True, self.playlists_sidebar)
