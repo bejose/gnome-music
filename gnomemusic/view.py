@@ -2006,9 +2006,32 @@ class Playlist(PlayViewContainer):
         self._grid.insert_row(0)
         self._grid.attach(self.headerbar, 1, 0, 1, 1)
 
+        #Begin icon widget
         self.iconswidget = Gd.MainView()
         self.iconswidget.set_view_type(Gd.MainViewType.ICON)
         self.iconswidget.set_hexpand(False)
+        
+        #Added below for the widget development
+        self.iconswidget = Gtk.Stack(
+                self.iconswidget = Gtk.Stack(
+
+            transition_type=Gtk.StackTransitionType.CROSSFADE,
+        )
+        self._iconswidget = Gtk.Frame(
+            shadow_type=Gtk.ShadowType.NONE,
+            hexpand=True
+        )
+        self.iconswidget.add_named(self._iconswidget, "sidebar")
+        self.iconswidget.set_visible_child_name("sidebar")
+        self.view.set_shadow_type(Gtk.ShadowType.IN)
+        self.view.get_style_context().add_class('side-panel')
+        self.view.set_hexpand(False)
+        self.view.get_generic_view().get_selection().set_mode(
+            Gtk.SelectionMode.SINGLE)
+        self._grid.attach(self.artistAlbumsStack, 2, 0, 2, 2)
+        self._add_list_renderers()
+        self.view.get_generic_view().get_style_context().remove_class('content-view')
+        self.show_all() 
         # self.iconswidget.get_generic_view().get_selection().set_mode(
         #     Gtk.SelectionMode.SINGLE)
 
