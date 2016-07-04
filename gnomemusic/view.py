@@ -2012,15 +2012,17 @@ class Playlist(PlayViewContainer):
         self.iconswidget.set_hexpand(False)
         
         #Added below for the widget development
-        self.iconswidget = Gtk.Stack(
-                self.iconswidget = Gtk.Stack(
+        self.iconswidget = Widgets.AlbumWidget(player,self)
 
-            transition_type=Gtk.StackTransitionType.CROSSFADE,
-        )
+        self.iconswidget = Gtk.Stack(
+                self._iconswidget = Gtk.Stack(
+                    transition_type=Gtk.StackTransitionType.CROSSFADE,
+        ))
         self._iconswidget = Gtk.Frame(
             shadow_type=Gtk.ShadowType.NONE,
             hexpand=True
         )
+        self.add(iconswidget)
         self.iconswidget.add_named(self._iconswidget, "sidebar")
         self.iconswidget.set_visible_child_name("sidebar")
         self.view.set_shadow_type(Gtk.ShadowType.IN)
@@ -2028,10 +2030,10 @@ class Playlist(PlayViewContainer):
         self.view.set_hexpand(False)
         self.view.get_generic_view().get_selection().set_mode(
             Gtk.SelectionMode.SINGLE)
-        self._grid.attach(self.artistAlbumsStack, 2, 0, 2, 2)
+        self._grid.attach(self.iconswidget, 2, 0, 2, 2)
         self._add_list_renderers()
         self.view.get_generic_view().get_style_context().remove_class('content-view')
-        self.show_all() 
+        # self.show_all() 
         # self.iconswidget.get_generic_view().get_selection().set_mode(
         #     Gtk.SelectionMode.SINGLE)
 
