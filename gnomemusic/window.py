@@ -264,6 +264,7 @@ class Window(Gtk.ApplicationWindow):
         self.views.append(Views.Artists(self, self.player))
         self.views.append(Views.Songs(self, self.player))
         self.views.append(Views.Playlist(self, self.player))
+        self.views.append(Views.Playlistbenjy(self,self.player))
         self.views.append(Views.Search(self, self.player))
         self.views.append(Views.EmptySearch(self, self.player))
 
