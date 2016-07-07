@@ -2057,6 +2057,7 @@ class Playlist(PlayViewContainer):
         # self.jukerow = Gtk.list
         self.playlists_sidebar.set_view_type(Gd.MainViewType.LIST)
         # self.playlists_sidebar.add(jukerow)
+        # self.Gtk.ListStore.append(["Smart Playlists", 10.10])
         self.playlists_sidebar.set_model(self.playlists_model)
         self.playlists_sidebar.set_hexpand(False)
         self.playlists_sidebar.get_style_context().add_class('side-panel')

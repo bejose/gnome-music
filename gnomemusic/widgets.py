@@ -388,7 +388,7 @@ class SmartWidget(Gtk.EventBox):
         smartwindow.add (box)
         self.image = Gtk.Image()
         box.pack_start (self.image, False, False, 0)
-        button = Gtk.Button("Open a picture...")
+        button = Gtk.Button("Picture here")
         box.pack_start (button, False, False, 2)
         button.connect_after('clicked', self.on_open_clicked)
 
