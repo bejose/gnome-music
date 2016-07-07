@@ -370,6 +370,36 @@ class AlbumWidget(Gtk.EventBox):
     #     self.star_renderer_click = True
 
 
+#class on SmartWidget
+class SmartWidget(Gtk.EventBox):
+    noArtworkIcon = ALBUM_ART_CACHE.get_default_icon(256, 256, False)
+    
+    def __init__(self):
+        # self.view = Gd.MainView(
+        #     shadow_type=Gtk.ShadowType.NONE
+        # )
+        # self.view.set_view_type(Gd.MainViewType.LIST)
+        smartwindow = Gtk.Window()
+        smartwindow.set_title ("played")
+        smartwindow.connect_after('destroy', self.destroy)
+        box = Gtk.Box()
+        box.set_spacing (5)
+        box.set_orientation (Gtk.Orientation.VERTICAL)
+        smartwindow.add (box)
+        self.image = Gtk.Image()
+        box.pack_start (self.image, False, False, 0)
+        button = Gtk.Button("Open a picture...")
+        box.pack_start (button, False, False, 2)
+        button.connect_after('clicked', self.on_open_clicked)
+
+        smartwindow.set_position(Gtk.WindowPosition.CENTER)
+        smartwindow.show_all()
+
+
+    def on_open_clicked(self, button):
+        self.image.set_from_file('/mysticmountain.png')
+
+
 class ArtistAlbums(Gtk.Box):
 
     def __repr__(self):

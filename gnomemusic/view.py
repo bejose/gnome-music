@@ -2006,12 +2006,12 @@ class Playlist(PlayViewContainer):
         self._grid.insert_row(0)
         self._grid.attach(self.headerbar, 1, 0, 1, 1)
 
-        #Begin icon widget
+        ##Begin icon widget
         # self.iconswidget = Gd.MainView()
         # self.iconswidget.set_view_type(Gd.MainViewType.ICON)
         # self.iconswidget.set_hexpand(False)
         
-        # #Added below for the widget development
+        # ##Added below for the widget development
         # self.iconswidget = Widgets.AlbumWidget(player,self)
 
         # self.iconswidget = Gtk.Stack(
@@ -2033,9 +2033,9 @@ class Playlist(PlayViewContainer):
         # self._grid.attach(self.iconswidget, 2, 0, 2, 2)
         # self._add_list_renderers()
         # self.view.get_generic_view().get_style_context().remove_class('content-view')
-        # # self.show_all() 
-        # self.iconswidget.get_generic_view().get_selection().set_mode(
-        #     Gtk.SelectionMode.SINGLE)
+        # ## self.show_all() 
+        # ## self.iconswidget.get_generic_view().get_selection().set_mode(
+        # ##     Gtk.SelectionMode.SINGLE)
 
 
 
@@ -2054,7 +2054,9 @@ class Playlist(PlayViewContainer):
             GObject.TYPE_INT
         )
 
+        # self.jukerow = Gtk.list
         self.playlists_sidebar.set_view_type(Gd.MainViewType.LIST)
+        # self.playlists_sidebar.add(jukerow)
         self.playlists_sidebar.set_model(self.playlists_model)
         self.playlists_sidebar.set_hexpand(False)
         self.playlists_sidebar.get_style_context().add_class('side-panel')
@@ -2259,6 +2261,11 @@ class Playlist(PlayViewContainer):
             selection.select_iter(_iter)
             self.playlists_sidebar.emit('item-activated', '0',
                                         self.playlists_model.get_path(_iter))
+
+    def smartplaybox(self, widget, id, path):
+        ViewContainer.__init__(self, 'smartplaybox', _("Smart Playlists"), window, Gd.MainViewType.ICON)
+        
+        pass
 
     @log
     def _on_item_activated(self, widget, id, path):
