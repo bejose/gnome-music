@@ -2061,6 +2061,11 @@ class Playlist(PlayViewContainer):
         self.playlists_sidebar.set_model(self.playlists_model)
         self.playlists_sidebar.set_hexpand(False)
         self.playlists_sidebar.get_style_context().add_class('side-panel')
+        
+        self.label = Gtk.Label()
+        self.label.set_markup("Smart Playlists")
+        self.stack.add_titled(self.label, "label", "A label")
+        
         self.playlists_sidebar.get_generic_view().get_selection().set_mode(
             Gtk.SelectionMode.SINGLE)
         self.playlists_sidebar.connect('item-activated', self._on_playlist_activated)

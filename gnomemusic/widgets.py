@@ -379,25 +379,31 @@ class SmartWidget(Gtk.EventBox):
         #     shadow_type=Gtk.ShadowType.NONE
         # )
         # self.view.set_view_type(Gd.MainViewType.LIST)
-        smartwindow = Gtk.Window()
-        smartwindow.set_title ("played")
-        smartwindow.connect_after('destroy', self.destroy)
-        box = Gtk.Box()
-        box.set_spacing (5)
-        box.set_orientation (Gtk.Orientation.VERTICAL)
-        smartwindow.add (box)
+        self.smartwindow = Gtk.Window()
+        self.smartwindow.set_title ("played")
+        self.smartwindow.connect_after('destroy', self.destroy)
+        self.box = Gtk.Box()
+        self.grid = Gtk.Grid()
+        self.box.add(self.grid)
+        # self.box.set_spacing (5)
+        self.box.set_orientation (Gtk.Orientation.VERTICAL)
+        self.smartwindow.add (self.box)
         self.image = Gtk.Image()
-        box.pack_start (self.image, False, False, 0)
-        button = Gtk.Button("Picture here")
-        box.pack_start (button, False, False, 2)
-        button.connect_after('clicked', self.on_open_clicked)
+        self.box.pack_start (self.image, False, False, 0)
+        self.button = Gtk.Button("Play button")
+        self.grid.add(self.button)
+        self.box.pack_start (self.button, False, False, 2)
+        self.button.connect_after('clicked', self.on_open_clicked)
+        self.smartwindow.set_default_size(400, 400)
+        self.smartwindow.set_position(Gtk.WindowPosition.CENTER)
+        self.smartwindow.show_all()
 
-        smartwindow.set_position(Gtk.WindowPosition.CENTER)
-        smartwindow.show_all()
 
-
-    def on_open_clicked(self, button):
+    def on_open_clicked_playlist(self, button):
         self.image.set_from_file('/mysticmountain.png')
+
+    def image_grid(self, Gtk.Image):
+        pass
 
 
 class ArtistAlbums(Gtk.Box):
