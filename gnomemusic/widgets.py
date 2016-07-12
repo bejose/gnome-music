@@ -379,21 +379,37 @@ class SmartWidget(Gtk.EventBox):
         #     shadow_type=Gtk.ShadowType.NONE
         # )
         # self.view.set_view_type(Gd.MainViewType.LIST)
-        self.stack = Gtk.Stack()
-        self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
-        self.stack.set_transition_duration(1000)
+        # self.stack = Gtk.Stack()
+        # self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        # self.stack.set_transition_duration(1000)
         
-        #window viewer
+        #initialized window
         self.smartwindow = Gtk.Window()
         self.smartwindow.set_border_width(0)
         self.smartwindow.set_title ("played")
         self.smartwindow.connect_after('destroy', self.destroy)
-        #initializing
+
+        #initialized boxes and grids
         self.box = Gtk.Box()
-        self.grid = Gtk.Grid()
+        self.grid = Gtk.Grid(column_homogeneous=True, column_spacing=10, row_spacing=10)
         self.box.add(self.grid)
         # self.box.set_spacing (5)
         
+        #allow scrollable
+        self.scrolledwindow = Gtk.ScrolledWindow()
+        self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,
+                                       Gtk.PolicyType.AUTOMATIC)
+
+        #Listing images
+        pics_list = []
+        pics_name = []
+        self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str)
+        for name, picture in zip(pics_name, pics_list):
+            pixes = GdkPixbuf.Pixbuf.new_from_file_at_scale(pic, 100, 100, True)
+            self.liststore.append([pixes, name])
+
+
+
         self.box.set_orientation (Gtk.Orientation.VERTICAL)
         self.smartwindow.add (self.box)
         # self.box.pack_start (self.image, False, False, 0)
@@ -402,35 +418,42 @@ class SmartWidget(Gtk.EventBox):
         self.button2 = Gtk.Button("Next playlist")
 
         #image to add to the rows
-        self.image = Gtk.Image()
-        self.image.set_from_file()
-        self.image.show()
-
+        # self.image = Gtk.Image()
+        # self.image.set_from_file()
+        # self.image.show()
+        self.add_image_to_grid
 
         #Add to the grid; 
         #To do: make rows for the max number of grid values
         self.grid.add(self.button)
         self.grid.add(self.button2)
+        # self.grid.add(self.add_image_to_grid())
+        # for i in range(1,5):
         # self.grid.attach()
 
         #Attach to the methods.
         self.box.pack_start (self.button, False, False, 0)
         self.button.connect_after('clicked', self.on_open_clicked)
+        self.button2.connect_after('clicked', self.add_image_to_grid)
         self.smartwindow.set_default_size(400, 400)
         self.smartwindow.set_position(Gtk.WindowPosition.CENTER)
         self.smartwindow.show_all()
 
         #add to the stack
-
+    #method to add image to grid that'll link to the playlists class
+    def add_image_to_grid(self,button):
+        player = self.player
+        playlists = self.Playlists
+        self.button.hide()
+        self.image = Gtk.image()
+        self.image.new_from_file("/mysticmountain.jpg")
+        self.image.show()
 
     def on_open_clicked_playlist(self, button):
         #should be linked to connect to stack page of the other playlists.
         self.button.hide()
         self.image.set_from_file('/mysticmountain.png')
         self.image.show()
-
-    def image_grid(self):
-        pass
 
 
 class ArtistAlbums(Gtk.Box):
