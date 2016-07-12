@@ -379,30 +379,57 @@ class SmartWidget(Gtk.EventBox):
         #     shadow_type=Gtk.ShadowType.NONE
         # )
         # self.view.set_view_type(Gd.MainViewType.LIST)
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
+        self.stack.set_transition_duration(1000)
+        
+        #window viewer
         self.smartwindow = Gtk.Window()
+        self.smartwindow.set_border_width(0)
         self.smartwindow.set_title ("played")
         self.smartwindow.connect_after('destroy', self.destroy)
+        #initializing
         self.box = Gtk.Box()
         self.grid = Gtk.Grid()
         self.box.add(self.grid)
         # self.box.set_spacing (5)
+        
         self.box.set_orientation (Gtk.Orientation.VERTICAL)
         self.smartwindow.add (self.box)
-        self.image = Gtk.Image()
-        self.box.pack_start (self.image, False, False, 0)
+        # self.box.pack_start (self.image, False, False, 0)
+        self.box.pack_start (self.grid, False, False, 0)
         self.button = Gtk.Button("Play button")
+        self.button2 = Gtk.Button("Next playlist")
+
+        #image to add to the rows
+        self.image = Gtk.Image()
+        self.image.set_from_file()
+        self.image.show()
+
+
+        #Add to the grid; 
+        #To do: make rows for the max number of grid values
         self.grid.add(self.button)
-        self.box.pack_start (self.button, False, False, 2)
+        self.grid.add(self.button2)
+        # self.grid.attach()
+
+        #Attach to the methods.
+        self.box.pack_start (self.button, False, False, 0)
         self.button.connect_after('clicked', self.on_open_clicked)
         self.smartwindow.set_default_size(400, 400)
         self.smartwindow.set_position(Gtk.WindowPosition.CENTER)
         self.smartwindow.show_all()
 
+        #add to the stack
+
 
     def on_open_clicked_playlist(self, button):
+        #should be linked to connect to stack page of the other playlists.
+        self.button.hide()
         self.image.set_from_file('/mysticmountain.png')
+        self.image.show()
 
-    def image_grid(self, Gtk.Image):
+    def image_grid(self):
         pass
 
 

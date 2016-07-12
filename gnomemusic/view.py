@@ -1969,7 +1969,7 @@ class Search(ViewContainer):
             grilo.search(search_term, self._add_search_item, self.model)
 
 
-class Playlist(PlayViewContainer):
+class Playlist(ViewContainer):
     __gsignals__ = {
         'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
         'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
@@ -2065,6 +2065,8 @@ class Playlist(PlayViewContainer):
         self.label = Gtk.Label()
         self.label.set_markup("Smart Playlists")
         self.stack.add_titled(self.label, "label", "A label")
+
+        # self._add_playlist_item(self.label)
         
         self.playlists_sidebar.get_generic_view().get_selection().set_mode(
             Gtk.SelectionMode.SINGLE)
@@ -2257,6 +2259,8 @@ class Playlist(PlayViewContainer):
             self.window.notification.dismiss()
             self.emit('playlists-loaded')
             return
+
+
         _iter = self.playlists_model.insert_with_valuesv(
             index,
             [2, 5],
