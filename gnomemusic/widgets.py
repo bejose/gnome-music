@@ -370,7 +370,7 @@ class AlbumWidget(Gtk.EventBox):
     #     self.star_renderer_click = True
 
 
-#class on SmartWidget
+#class on Smart Playlists Widget
 class SmartWidget(Gtk.EventBox):
     noArtworkIcon = ALBUM_ART_CACHE.get_default_icon(256, 256, False)
     
@@ -401,12 +401,27 @@ class SmartWidget(Gtk.EventBox):
                                        Gtk.PolicyType.AUTOMATIC)
 
         #Listing images
+        #ref player.py
         pics_list = []
         pics_name = []
+        for root, dir, files in os.walk(final_path):
+            for fn in files:
+                pics_name.append(fn)
+                f = os.path.join(root, fn)
+                pics_list.append(f)
+
         self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str)
         for name, picture in zip(pics_name, pics_list):
-            pixes = GdkPixbuf.Pixbuf.new_from_file_at_scale(pic, 100, 100, True)
+            pixes = GdkPixbuf.Pixbuf.new_from_file_at_scale(picture, 100, 100, True)
             self.liststore.append([pixes, name])
+
+        #tree view for setting the values
+        self.treeview = Gtk.TreeView(model=self.liststore)
+
+        renderer_pixbuf = Gtk.CellRendererPixbuf()
+        column_pixbuf = Gtk.TreeViewColumn('Picture', renderer_pixbuf, pixbuf=0)
+        column_pixbuf.set_alignment(0.5)
+        self.treeview.append_column(column_pixbuf)
 
 
 
