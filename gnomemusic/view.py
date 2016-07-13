@@ -2527,3 +2527,155 @@ class Playlist(ViewContainer):
     def get_selected_tracks(self, callback):
         callback([self.model.get_value(self.model.get_iter(path), 5)
                   for path in self.view.get_selection()])
+
+
+
+
+class SmartWidget(Gtk.EventBox):
+    # noArtworkIcon = ALBUM_ART_CACHE.get_default_icon(256, 256, False)
+
+    # def __init__(self):
+    #     smartwindow = Gtk.Window.__init__(self)
+    #     Gtk.Window.__init__(self)
+    #     self.box = Gtk.Box(spacing=6)
+    #     self.add(self.box)
+    #     win.show_all()
+    
+    def __init__(self):
+        # self.view = Gd.MainView(
+        #     shadow_type=Gtk.ShadowType.NONE
+        # )
+        # self.view.set_view_type(Gd.MainViewType.LIST)
+        
+        # Stack area
+
+
+
+        #initialized window
+        self.smartwindow = Gtk.Window()
+        self.smartwindow.set_border_width(0)
+        self.smartwindow.set_title ("played")
+        self.smartwindow.connect_after('destroy', self.destroy)
+
+        #define paths to use
+        home_path = os.environ.get('HOME')
+        pic_path = os.path.join('Desktop', 'play-img')
+        final_path = os.path.join(home_path, pic_path)
+
+        #initialized boxes and grids
+        self.box = Gtk.Box()
+        self.grid = Gtk.Grid(column_homogeneous=True, column_spacing=10, row_spacing=10)
+        self.box.add(self.grid)
+        # self.box.set_spacing (5)
+        
+        #allow scrollable
+        self.scrolledwindow = Gtk.ScrolledWindow()
+        self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,
+                                       Gtk.PolicyType.AUTOMATIC)
+
+        #Listing images (find how to set arrays to files)
+        pics_list = []
+        pics_name = []
+        for root, dir, files in os.walk(final_path):
+            for fn in files:
+                pics_name.append(fn)
+                f = os.path.join(root, fn)
+                pics_list.append(f)
+
+        self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str)
+        for name, picture in zip(pics_name, pics_list):
+            pixes = GdkPixbuf.Pixbuf.new_from_file_at_scale(picture, 100, 100, True)
+            self.liststore.append([pixes, name])
+
+
+
+
+        #tree view for setting the values
+        self.treeview = Gtk.TreeView(model=self.liststore)
+
+        renderer_pixbuf = Gtk.CellRendererPixbuf()
+        renderer_pixbuf.set_fixed_size(100,-1)
+        column_pixbuf = Gtk.TreeViewColumn('Picture', renderer_pixbuf, pixbuf=0)
+        column_pixbuf.set_sort_column_id(1)
+        column_pixbuf.set_alignment(0.5)
+        self.treeview.append_column(column_pixbuf)
+        
+
+        # renderer_text = Gtk.CellRendererText(weight=600)
+        # renderer_text.set_fixed_size(200, -1)
+        # column_text = Gtk.TreeViewColumn('Name', renderer_text, text=1)
+        # # column_text.set_sort_column_id(1)
+        # column_text.set_alignment(0.5)
+        # self.treeview.append_column(column_text)
+
+
+
+
+
+        self.box.set_orientation (Gtk.Orientation.HORIZONTAL)
+        self.smartwindow.add (self.box)
+        # self.box.pack_start (self.image, False, False, 0)
+        self.box.pack_start (self.grid, False, False, 0)
+        self.button = Gtk.Button("Play button")
+        self.button2 = Gtk.Button("Next playlist")
+
+        #image to add to the rows
+        # self.image = Gtk.Image()
+        # self.image.set_from_file()
+        # self.image.show()
+        self.add_image_to_grid
+
+        
+        #Add to the grid; 
+        #To do: make rows for the max number of grid values
+
+        self.grid.add(self.button)
+        self.grid.add(self.button2)
+        self.grid.add(self.treeview)
+        # self.grid.add(self.add_image_to_grid())
+        # for i in range(1,5):
+        # self.grid.attach()
+
+        #Attach to the methods.
+        self.box.pack_start (self.button, False, False, 0)
+        self.button.connect_after('clicked', self.on_open_clicked)
+        self.button2.connect_after('clicked', self.add_image_to_grid)
+        self.smartwindow.set_default_size(400, 400)
+        self.smartwindow.set_position(Gtk.WindowPosition.CENTER)
+        self.smartwindow.show_all()
+
+        #add to the stack
+    def add_image_to_grid(self, button):
+        self.button2.hide()
+        self.image = Gtk.Image()
+        self.image.new_from_file("/mysticmountain.jpg")
+        self.image.show()
+
+
+    def on_open_clicked(self, button):
+        #change to simply show diagram
+        # dialog = Gtk.FileChooserDialog ("Open Image", button.get_toplevel(), Gtk.FileChooserAction.OPEN);
+        # dialog.add_button (Gtk.STOCK_CANCEL, 0)
+        # dialog.add_button (Gtk.STOCK_OK, 1)
+        # dialog.set_default_response(1)
+
+        # filefilter = Gtk.FileFilter ()
+        # filefilter.add_pixbuf_formats ()
+        # dialog.set_filter(filefilter)
+
+        # if dialog.run() == 1:
+        #     # self.image.set_from_file(dialog.get_filename())
+        #     self.image.new_from_file("mystic_mountain.jpg")
+
+        # dialog.destroy()
+        # self.dia = self.image.new_from_file("mysticmountain.jpg")
+        # self.frame_rgb.add(self.dia)
+        # self.button.hide()
+        self.image = Gtk.image()
+        # self.img1 = self.image.set_from_image('/mysticmountain.png')
+        self.button.hide()
+        self.image.set_from_file('/mysticmountain.png')
+        self.image.show()
+
+    def destroy(smartwindow, self):
+        Gtk.main_quit()
