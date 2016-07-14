@@ -2679,3 +2679,41 @@ class SmartWidget(Gtk.EventBox):
 
     def destroy(smartwindow, self):
         Gtk.main_quit()
+
+
+class SmartWidget(ViewContainer):
+    __gsignals__ = {
+        'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
+        'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
+    }
+
+    def __repr__(self):
+        return '<Playlist>'
+
+    @log
+    def __init__(self, window, player):
+        self.playlists_sidebar = Gd.MainView()
+        # self.playlists_sidebar = Gtk.Widget.hide()
+
+        ViewContainer.__init__(self, 'playlists', _("Smart Playlists"), window,
+                               Gd.MainViewType.LIST, True, self.playlists_sidebar)
+        self.view.get_generic_view().get_style_context()\
+            .add_class('songs-list')
+        # self._add_list_renderers()
+        self.view.get_generic_view().get_style_context().remove_class('content-view')
+
+        builder = Gtk.Builder()
+        builder.add_from_resource('/org/gnome/Music/PlaylistControls.ui')
+        
+        self.headerbar = builder.get_object('grid')
+        self.name_label = builder.get_object('playlist_name')
+        self.songs_count_label = builder.get_object('songs_count')
+        self.menubutton = builder.get_object('playlist_menubutton')
+        # playlistPlayAction = Gio.SimpleAction.new('playlist_play', None)
+        # playlistPlayAction.connect('activate', self._on_play_activate)
+        # window.add_action(playlistPlayAction)
+        # self.playlistDeleteAction = Gio.SimpleAction.new('playlist_delete', None)
+        # self.playlistDeleteAction.connect('activate', self._on_delete_activate)
+        # window.add_action(self.playlistDeleteAction)
+        self._grid.insert_row(0)
+        self._grid.attach(self.headerbar, 1, 0, 1, 1)
