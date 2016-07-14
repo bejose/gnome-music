@@ -464,6 +464,22 @@ class SmartWidget(Gtk.EventBox):
         self.image.new_from_file("/mysticmountain.jpg")
         self.image.show()
 
+    def _on_item_activated(self, widget, id, path):
+        if self.star_handler.star_renderer_click:
+            self.star_handler.star_renderer_click = False
+            return
+
+        try:
+            _iter = self.model.get_iter(path)
+        except TypeError:
+            return
+        if self.model.get_value(_iter, 8) != self.errorIconName:
+            self.player.set_playlist(
+                'Playlist', self.current_playlist.get_id(),
+                self.model, _iter, 5, 11
+            )
+            self.player.set_playing(True)
+
     def on_open_clicked_playlist(self, button):
         #should be linked to connect to stack page of the other playlists.
         self.button.hide()
