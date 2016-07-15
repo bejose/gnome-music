@@ -2531,7 +2531,7 @@ class Playlist(ViewContainer):
 
 
 
-class SmartWidget(Gtk.EventBox):
+class SmartDay(Gtk.EventBox):
     # noArtworkIcon = ALBUM_ART_CACHE.get_default_icon(256, 256, False)
 
     # def __init__(self):
@@ -2681,7 +2681,7 @@ class SmartWidget(Gtk.EventBox):
         Gtk.main_quit()
 
 
-class SmartWidget(ViewContainer):
+class SmartWidge(ViewContainer):
     __gsignals__ = {
         'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
         'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
@@ -2696,7 +2696,7 @@ class SmartWidget(ViewContainer):
         # self.playlists_sidebar = Gtk.Widget.hide()
 
         ViewContainer.__init__(self, 'playlists', _("Smart Playlists"), window,
-                               Gd.MainViewType.LIST, True, self.playlists_sidebar)
+                               Gd.MainViewType.ICON, False, self.playlists_sidebar)
         self.view.get_generic_view().get_style_context()\
             .add_class('songs-list')
         # self._add_list_renderers()
@@ -2709,6 +2709,11 @@ class SmartWidget(ViewContainer):
         self.name_label = builder.get_object('playlist_name')
         self.songs_count_label = builder.get_object('songs_count')
         self.menubutton = builder.get_object('playlist_menubutton')
+
+        self._smartwidget = Widgets.SmartWidget()
+        self.player = player
+        self.add(self._smartwidget)
+
         # playlistPlayAction = Gio.SimpleAction.new('playlist_play', None)
         # playlistPlayAction.connect('activate', self._on_play_activate)
         # window.add_action(playlistPlayAction)
@@ -2717,3 +2722,106 @@ class SmartWidget(ViewContainer):
         # window.add_action(self.playlistDeleteAction)
         self._grid.insert_row(0)
         self._grid.attach(self.headerbar, 1, 0, 1, 1)
+
+
+class SmartWidget(ViewContainer):
+
+    def __repr__(self):
+        return '<Albums>'
+
+    @log
+    def __init__(self, window, player):
+        ViewContainer.__init__(self, 'albums', _("Albums"), window, Gd.MainViewType.ICON)
+        self._albumWidget = Widgets.NewSmartWidget(player, self)
+        self.player = player
+        self.add(self._albumWidget)
+        self.albums_selected = []
+        self.items_selected = []
+        self.items_selected_callback = None
+        self._add_list_renderers()
+
+    @log
+    def _on_changes_pending(self, data=None):
+        if (self._init and self.header_bar._selectionMode is False):
+            self._offset = 0
+            self._init = True
+            GLib.idle_add(self.populate)
+            grilo.changes_pending['Albums'] = False
+
+    @log
+    def _on_selection_mode_changed(self, widget, data=None):
+        if self.header_bar._selectionMode is False and grilo.changes_pending['Albums'] is True:
+            self._on_changes_pending()
+
+    @log
+    def _back_button_clicked(self, widget, data=None):
+        self.header_bar.reset_header_title()
+        
+        self.set_visible_child(self._grid)
+
+    @log
+    def _on_item_activated(self, widget, id, path):
+        if self.star_handler.star_renderer_click:
+            self.star_handler.star_renderer_click = False
+            return
+
+        try:
+            _iter = self.model.get_iter(path)
+        except TypeError:
+            return
+        title = self.model.get_value(_iter, 2)
+        self._artist = self.model.get_value(_iter, 3)
+        item = self.model.get_value(_iter, 5)
+        self._albumWidget.update(self._artist, title, item,
+                                 self.header_bar, self.selection_toolbar)
+        self.header_bar.set_state(ToolbarState.CHILD_VIEW)
+        self._escaped_title = albumArtCache.get_media_title(item)
+        self.header_bar.header_bar.set_title(self._escaped_title)
+        self.header_bar.header_bar.sub_title = self._artist
+        self.set_visible_child(self._albumWidget)
+
+    @log
+    def update_title(self):
+        self.header_bar.header_bar.set_title(self._escaped_title)
+        self.header_bar.header_bar.sub_title = self._artist
+
+    @log
+    def populate(self):
+        if grilo.tracker:
+            self.window._init_loading_notification()
+            GLib.idle_add(grilo.populate_albums, self._offset, self._add_item)
+
+    @log
+    def get_selected_tracks(self, callback):
+        if self.header_bar._state == ToolbarState.CHILD_VIEW:
+            items = []
+            for path in self._albumWidget.view.get_selection():
+                _iter = self._albumWidget.model.get_iter(path)
+                items.append(self._albumWidget.model.get_value(_iter, 5))
+            callback(items)
+        else:
+            self.items_selected = []
+            self.items_selected_callback = callback
+            self.albums_index = 0
+            self.albums_selected = [self.model.get_value(self.model.get_iter(path), 5)
+                                    for path in self.view.get_selection()]
+            if len(self.albums_selected):
+                self._get_selected_album_songs()
+
+    @log
+    def _get_selected_album_songs(self):
+        grilo.populate_album_songs(
+            self.albums_selected[self.albums_index],
+            self._add_selected_item)
+        self.albums_index += 1
+
+    @log
+    def _add_selected_item(self, source, param, item, remaining=0, data=None):
+        if item:
+            self.items_selected.append(item)
+        if remaining == 0:
+            if self.albums_index < len(self.albums_selected):
+                self._get_selected_album_songs()
+            else:
+                self.items_selected_callback(self.items_selected)
+
