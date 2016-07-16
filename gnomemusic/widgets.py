@@ -463,6 +463,17 @@ class SmartWidget(Gtk.EventBox):
         self.image.new_from_file("/mysticmountain.jpg")
         self.image.show()
 
+    def on_item_clicked(self, button):
+
+        home_path = os.environ.get('HOME')
+        button_path = os.path.join('Desktop', 'play-img', 'm1.jpg')
+        img1 = os.path.join(home_path,button_path)
+        new_image = Gtk.Image()
+        new_image.set_from_file(button_path)
+        self.button.add(new_image)
+        self.button.set_size_request(150,150)
+        pass
+
     def _on_item_activated(self, widget, id, path):
         if self.star_handler.star_renderer_click:
             self.star_handler.star_renderer_click = False
