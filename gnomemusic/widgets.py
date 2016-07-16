@@ -393,7 +393,7 @@ class SmartWidget(Gtk.EventBox):
         self.scrolledwindow = Gtk.ScrolledWindow()
         self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,
                                        Gtk.PolicyType.AUTOMATIC)
-        
+
         #define paths to use
         home_path = os.environ.get('HOME')
         pic_path = os.path.join('Desktop', 'play-img')
@@ -423,11 +423,23 @@ class SmartWidget(Gtk.EventBox):
         #   select = liststore.get_selection()
         #   if liststore[_iter]._on_selection_mode_request():
 
+        # self.store = Gtk.ListStore(str, str, float)
+        # self.array_list = ["Faves","F",1]
+        # self.treeiter = self.store.append(self.array_list)
 
+        # # Try using text for the list and clickable
+        # renderer = Gtk.CellRendererText()
+        # column = Gtk.TreeViewColumn("Smart Playlists", renderer, text=0)
+        # self.treeview.append_column(column)
 
+        # for row in store:
+        #     if store.get_iter_first():
+        #         self.button.connect_after('clicked', self.on_item_clicked)
 
+        self.iconviewer = Gtk.IconView(self.liststore)
+        self.iconviewer.set_pixbuf_column(0)
 
-        #tree view for setting the values
+        # tree view for setting the values
         self.treeview = Gtk.TreeView(model=self.liststore)
         renderer_pixbuf = Gtk.CellRendererPixbuf()
         renderer_pixbuf.set_fixed_size(100,-1)
@@ -437,18 +449,28 @@ class SmartWidget(Gtk.EventBox):
         self.treeview.append_column(column_pixbuf) # append picture values
         
 
+
+
         # # selection in tree
         # select = self.treeview.get_selection()
         # select.connect("changed", on_tree_selection_changed)
 
-        self.button = Gtk.Button()
+        self.button = Gtk.Button("playlist name")
         self.button.connect_after('clicked', self.on_item_clicked)
         
+        self.button2 = Gtk.Button("Faves")
+        self.button2.connect_after('clicked', self.on_item_clicked)
 
 
-        # Add to the grid 
-        self.grid.add(self.button)
-        self.grid.add(self.treeview)
+        # Add to the grid
+        self.grid.add(self.scrolledwindow)
+        self.scrolledwindow.add(self.iconviewer)
+        # self.grid.add(self.button)
+        # self.grid.attach(self.button2, 1, 0, 2, 1)
+        # # grid.attach_next_to(self.button, button1, Gtk.PositionType.BOTTOM, 1, 2)
+        # grid.attach_next_to(self.button, button3, Gtk.PositionType.RIGHT, 2, 1)
+        # self.grid.attach(self.button, 1, 2, 1, 1)
+        # self.grid.attach_next_to(self.treeview, self.button, Gtk.PositionType.BOTTOM, 1,2)
 
         # Show all
         self.show_all()

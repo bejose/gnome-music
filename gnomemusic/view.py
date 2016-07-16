@@ -2289,18 +2289,21 @@ class Playlist(ViewContainer):
         if self.star_handler.star_renderer_click:
             self.star_handler.star_renderer_click = False
             return
-        if playlist is self.sentinel:
-                iter = self.playlists_model.iter_next(_iter)
+
                 
         try:
             _iter = self.model.get_iter(path)
         except TypeError:
             return
         if self.model.get_value(_iter, 8) != self.errorIconName:
+            if playlist is self.sentinel:
+                # _iter = self.playlists_model.iter_next(_iter)
+                _iter = Widgets.AlbumWidget(self,player)
             self.player.set_playlist(
                 'Playlist', self.current_playlist.get_id(),
                 self.model, _iter, 5, 11
             )
+            
             self.player.set_playing(True)
 
     @log
@@ -2308,12 +2311,12 @@ class Playlist(ViewContainer):
         _iter = self.playlists_model.get_iter_first()
         while _iter:
             playlist = self.playlists_model.get_value(_iter, 5)
+            if playlist is self.sentinel:
+                    _iter = self.playlists_model.iter_next(_iter)
+                    continue
             if str(playlist_id) == playlist.get_id() and self.current_playlist == playlist:
                 path = self.playlists_model.get_path(_iter)
                 GLib.idle_add(self._on_playlist_activated, None, None, path)
-                if playlist is self.sentinel:
-                    _iter = self.playlists_model.iter_next(_iter)
-                    continue
                 break
             _iter = self.playlists_model.iter_next(_iter)
 
@@ -2439,6 +2442,10 @@ class Playlist(ViewContainer):
     @log
     def current_playlist_is_protected(self):
         current_playlist_id = self.current_playlist.get_id()
+        if current_playlist is self.sentinel:
+                # _iter = self.playlists_model.iter_next(_iter)
+                # _iter = Widgets.AlbumWidget(self,player)
+                pass
         if current_playlist_id in StaticPlaylists.get_protected_ids():
             return True
         else:
