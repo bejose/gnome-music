@@ -2053,12 +2053,12 @@ class Playlist(ViewContainer):
             GObject.TYPE_INT
         )
         
-        # On adding the sidebar object for smart playlists.
-        obj = object()
-        self.playlists_model.insert_with_valuesv(
-            0, [2,5], 
-            ["Smart Playlists", obj]
-            )
+        # # On adding the sidebar object for smart playlists.
+        # obj = object()
+        # self.playlists_model.insert_with_valuesv(
+        #     0, [2,5], 
+        #     ["Smart Playlists", obj]
+        #     )
 
 
         # self.jukerow = Gtk.list
@@ -2289,7 +2289,9 @@ class Playlist(ViewContainer):
         if self.star_handler.star_renderer_click:
             self.star_handler.star_renderer_click = False
             return
-
+        if playlist is self.sentinel:
+                iter = self.playlists_model.iter_next(_iter)
+                
         try:
             _iter = self.model.get_iter(path)
         except TypeError:
@@ -2307,11 +2309,11 @@ class Playlist(ViewContainer):
         while _iter:
             playlist = self.playlists_model.get_value(_iter, 5)
             if str(playlist_id) == playlist.get_id() and self.current_playlist == playlist:
+                path = self.playlists_model.get_path(_iter)
+                GLib.idle_add(self._on_playlist_activated, None, None, path)
                 if playlist is self.sentinel:
                     _iter = self.playlists_model.iter_next(_iter)
                     continue
-                path = self.playlists_model.get_path(_iter)
-                GLib.idle_add(self._on_playlist_activated, None, None, path)
                 break
             _iter = self.playlists_model.iter_next(_iter)
 
@@ -2361,6 +2363,7 @@ class Playlist(ViewContainer):
             handler = self.connect('playlists-loaded', playlists_loaded_callback)
 
             self._populate()
+
 
     @log
     def _on_playlist_activated(self, widget, item_id, path):
@@ -2531,6 +2534,9 @@ class Playlist(ViewContainer):
     def populate(self):
         if grilo.tracker:
             self.playlists_model.clear()
+            obj = object()
+            self.playlists_model.insert_with_valuesv(
+                0, [2,5], ["Smart Playlists", obj])
             GLib.idle_add(grilo.populate_playlists, self._offset,
                           self._add_playlist_item)
 

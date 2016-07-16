@@ -432,7 +432,7 @@ class SmartWidget(Gtk.EventBox):
         renderer_pixbuf = Gtk.CellRendererPixbuf()
         renderer_pixbuf.set_fixed_size(100,-1)
         column_pixbuf = Gtk.TreeViewColumn('Smart Playlists', renderer_pixbuf, pixbuf=0)
-        column_pixbuf.set_sort_column_id(1) #set clickable on row
+        column_pixbuf.set_sort_column_id(1) #set clickable sorting on row
         column_pixbuf.set_alignment(0.5)
         self.treeview.append_column(column_pixbuf) # append picture values
         
