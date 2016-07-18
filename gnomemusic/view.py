@@ -1008,8 +1008,8 @@ class Artists (ViewContainer):
 # #Benjamin code change
 class Playlistbenjy(PlayViewContainer):
     __gsignals__ = {
-        'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
-        'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
+        'playlists-loaded': (GObject.SignalFlags.RUN_LAST, None, ()),
+        'playlist-songs-loaded': (GObject.SignalFlags.RUN_LAST, None, ()),
     }
 
     def __repr__(self):
@@ -2450,11 +2450,7 @@ class Playlist(ViewContainer):
     @log
     def current_playlist_is_protected(self):
         current_playlist_id = self.current_playlist.get_id()
-        if current_playlist is self.sentinel:
-                # _iter = self.playlists_model.iter_next(_iter)
-                # _iter = Widgets.AlbumWidget(self,player)
-                pass
-        if current_playlist_id in StaticPlaylists.get_protected_ids():
+        if current_playlist_id in StaticPlaylists.get_protected_ids() or current_playlist_id is self.sentinel:
             return True
         else:
             return False
@@ -2564,29 +2560,27 @@ class Playlist(ViewContainer):
 
 
 # Remember smarting for finding
-class SmartWidge(ViewContainer):
+class SmartWidget(ViewContainer):
     __gsignals__ = {
         'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
         'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
     def __repr__(self):
-        return '<Playlist>'
+        return '<Albums>'
 
     @log
     def __init__(self, window, player):
-        # self.playlists_sidebar = Gd.MainView()
-        # # self.playlists_sidebar = Gtk.Widget.hide()
+        self.playlists_sidebar = Gd.MainIconView()
+        # self.playlists_sidebar = Gtk.Widget.hide()
 
         ViewContainer.__init__(self, 'playlists', _("Smart Playlists"), window,
-                               Gd.MainViewType.LIST)
+                               Gd.MainViewType.ICON, False, self.playlists_sidebar)
 
-        # Gtk.Window.__init__(self)
-        self.title = "Smart Playli"
         #set the grid
         self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=True,
                              column_spacing=10, row_spacing=10)
-        self.add(self.grid)
+        # self.add(self.grid)
 
         #allow scrollable
         self.scrolledwindow = Gtk.ScrolledWindow()
@@ -2624,11 +2618,11 @@ class SmartWidge(ViewContainer):
                 f = os.path.join(root, fn)
                 pics_list.append(f)
 
-        #sets list of pictures and names from the files
-        self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str)
+        #sets picture list and playlist names
+        self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, Gtk.ListStore)
         for name, picture in zip(playlist_name, pics_list):
-            pixes = GdkPixbuf.Pixbuf.new_from_file_at_scale(picture, 80, 80, True)
-            self.liststore.append([pixes, name])
+            self.pixel = GdkPixbuf.Pixbuf.new_from_file_at_scale(picture, 80, 80, True)
+            self.liststore.append([self.pixel, self.liststore])
         
         #set iteration for clicks
         # for row in liststore:
@@ -2648,7 +2642,7 @@ class SmartWidge(ViewContainer):
         #     if store.get_iter_first():
         #         self.button.connect_after('clicked', self.on_item_clicked)
 
-        # self.playlists_sidebar.set_model(self.playlists_model)
+        self.playlists_sidebar.set_model(self.playlists_model)
         self.iconviewer = Gtk.IconView(self.liststore)
         self.iconviewer.set_columns(4)
         self.iconviewer.set_item_width(50)
@@ -2667,14 +2661,7 @@ class SmartWidge(ViewContainer):
         column_pixbuf.set_sort_column_id(1) #set clickable sorting on row
         column_pixbuf.set_alignment(0.5)
         self.treeview.append_column(column_pixbuf) # append picture values
-        
-
-
-
-        # # selection in tree
-        # select = self.treeview.get_selection()
-        # select.connect("changed", on_tree_selection_changed)
-
+ 
         # Add to the grid
         self.add(self.grid)
         self.grid.add(self.scrolledwindow)
@@ -3155,120 +3142,3 @@ class SmartWidge(ViewContainer):
             )
             
             self.player.set_playing(True)
-
-
-class SmartWidget(ViewContainer):
-
-    def __repr__(self):
-        return '<Albums>'
-
-    @log
-    def __init__(self, window, player):
-        ViewContainer.__init__(self, 'albums', _("New Widget implementation"), window, Gd.MainViewType.ICON)
-        # self._albumWidget = Widgets.NewSmartWidget(player, self)
-        self.player = player
-        # self.add(self._albumWidget)
-        self.albums_selected = []
-        self.items_selected = []
-        self.items_selected_callback = None
-        self._add_list_renderers()
-
-    @log
-    def _on_changes_pending(self, data=None):
-        if (self._init and self.header_bar._selectionMode is False):
-            self._offset = 0
-            self._init = True
-            GLib.idle_add(self.populate)
-            grilo.changes_pending['Albums'] = False
-
-    @log
-    def _on_selection_mode_changed(self, widget, data=None):
-        if self.header_bar._selectionMode is False and grilo.changes_pending['Albums'] is True:
-            self._on_changes_pending()
-
-    @log
-    def _back_button_clicked(self, widget, data=None):
-        self.header_bar.reset_header_title()
-        
-        self.set_visible_child(self._grid)
-
-    @log
-    def _on_item_activated(self, widget, id, path):
-        if self.star_handler.star_renderer_click:
-            self.star_handler.star_renderer_click = False
-            return
-
-        try:
-            _iter = self.model.get_iter(path)
-        except TypeError:
-            return
-        if self.model.get_value(_iter, 8) != self.errorIconName:
-            self.player.set_playlist(
-                'Playlist', self.current_playlist.get_id(),
-                self.model, _iter, 5, 11
-            )
-            self.player.set_playing(True)
-
-        # if self.star_handler.star_renderer_click:
-        #     self.star_handler.star_renderer_click = False
-        #     return
-
-        # try:
-        #     _iter = self.model.get_iter(path)
-        # except TypeError:
-        #     return
-        # title = self.model.get_value(_iter, 2)
-        # self._artist = self.model.get_value(_iter, 3)
-        # item = self.model.get_value(_iter, 5)
-        # self._albumWidget.update(self._artist, title, item,
-        #                          self.header_bar, self.selection_toolbar)
-        # self.header_bar.set_state(ToolbarState.CHILD_VIEW)
-        # self._escaped_title = albumArtCache.get_media_title(item)
-        # self.header_bar.header_bar.set_title(self._escaped_title)
-        # self.header_bar.header_bar.sub_title = self._artist
-        # self.set_visible_child(self._albumWidget)
-
-    @log
-    def update_title(self):
-        self.header_bar.header_bar.set_title(self._escaped_title)
-        self.header_bar.header_bar.sub_title = self._artist
-
-    @log
-    def populate(self):
-        if grilo.tracker:
-            self.window._init_loading_notification()
-            GLib.idle_add(grilo.populate_albums, self._offset, self._add_item)
-
-    @log
-    def get_selected_tracks(self, callback):
-        if self.header_bar._state == ToolbarState.CHILD_VIEW:
-            items = []
-            for path in self._albumWidget.view.get_selection():
-                _iter = self._albumWidget.model.get_iter(path)
-                items.append(self._albumWidget.model.get_value(_iter, 5))
-            callback(items)
-        else:
-            self.items_selected = []
-            self.items_selected_callback = callback
-            self.albums_index = 0
-            self.albums_selected = [self.model.get_value(self.model.get_iter(path), 5)
-                                    for path in self.view.get_selection()]
-            if len(self.albums_selected):
-                self._get_selected_album_songs()
-
-    @log
-    def _get_selected_album_songs(self):
-        grilo.populate_album_songs(
-            self.albums_selected[self.albums_index],
-            self._add_selected_item)
-        self.albums_index += 1
-
-    @log
-    def _add_selected_item(self, source, param, item, remaining=0, data=None):
-        if item:
-            self.items_selected.append(item)
-        if remaining == 0:
-            if self.albums_index < len(self.albums_selected):
-                self._get_selected_album_songs()
-            else:
-                self.items_selected_callback(self.items_selected)
