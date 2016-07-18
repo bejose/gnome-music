@@ -255,209 +255,6 @@ class ViewContainer(Gtk.Stack):
     def _on_list_widget_star_render(self, col, cell, model, _iter, data):
         pass
 
-#Class for the playlists
-class PlayViewContainer(Gtk.Stack):
-    nowPlayingIconName = 'media-playback-start-symbolic'
-    errorIconName = 'dialog-error-symbolic'
-
-    def __repr__(self):
-        return '<ViewContainer>'
-
-    @log
-    def __init__(self, name, title, window, view_type, use_sidebar=False, sidebar=None):
-        Gtk.Stack.__init__(self,
-                           transition_type=Gtk.StackTransitionType.CROSSFADE)
-        self._grid = Gtk.Grid(orientation=Gtk.Orientation.HORIZONTAL)
-        self._iconWidth = 128
-        self._iconHeight = 128
-        #self.use_sidebar = False
-        self._offset = 0
-        self._adjustmentValueId = 0
-        self._adjustmentChangedId = 0
-        self._scrollbarVisibleId = 0
-        self.old_vsbl_range = None
-        self.model = Gtk.ListStore(
-            GObject.TYPE_STRING,
-            GObject.TYPE_STRING,
-            GObject.TYPE_STRING,
-            GObject.TYPE_STRING,
-            GdkPixbuf.Pixbuf,
-            GObject.TYPE_OBJECT,
-            GObject.TYPE_BOOLEAN,
-            GObject.TYPE_INT,
-            GObject.TYPE_STRING,
-            GObject.TYPE_INT,
-            GObject.TYPE_BOOLEAN,
-            GObject.TYPE_INT
-        )
-        self.view = Gd.MainView(
-            shadow_type=Gtk.ShadowType.NONE
-        )
-        self.view.set_view_type(view_type)
-        self._box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self._box.pack_start(self.view, True, True, 0)
-        #Edit sidebar hide view
-        if use_sidebar:
-            self.stack = Gtk.Stack(
-                transition_type=Gtk.StackTransitionType.SLIDE_RIGHT,
-            )
-            dummy = Gtk.Frame(visible=False)
-            self.stack.add_named(dummy, 'dummy')
-            if sidebar:
-                self.stack.add_named(sidebar, 'sidebar')
-            else:
-                self.stack.add_named(self._box, 'sidebar')
-            self.stack.set_visible_child_name('dummy')
-            self._grid.add(self.stack)
-        if not use_sidebar or sidebar:
-            self._grid.add(self._box)
-
-
-        self.star_handler = Widgets.StarHandler(self, 9)
-        self.view.click_handler = self.view.connect('item-activated', self._on_item_activated)
-        self.star_handler.star_renderer_click = False
-        self.view.connect('selection-mode-request', self._on_selection_mode_request)
-        self._cursor = None
-        self.window = window
-        self.header_bar = window.toolbar
-        self.selection_toolbar = window.selection_toolbar
-        self.header_bar._select_button.connect(
-            'toggled', self._on_header_bar_toggled)
-        self.header_bar._cancel_button.connect(
-            'clicked', self._on_cancel_button_clicked)
-
-        self.name = name
-        self.title = title
-        self.add(self._grid)
-
-        self.show_all()
-        self.view.hide()
-        self._items = []
-        self.cache = albumArtCache.get_default()
-        self._loadingIcon = self.cache.get_default_icon(self._iconWidth, self._iconHeight, True)
-
-        self._init = False
-        grilo.connect('ready', self._on_grilo_ready)
-        self.selection_socket = None
-        self.header_bar.connect('selection-mode-changed',
-                                self._on_selection_mode_changed)
-
-        self._discovering_urls = {}
-        grilo.connect('changes-pending', self._on_changes_pending)
-
-    @log
-    def _on_changes_pending(self, data=None):
-        pass
-
-    @log
-    def _on_header_bar_toggled(self, button):
-        if button.get_active():
-            self.view.set_selection_mode(True)
-            self.header_bar.set_selection_mode(True)
-            self.player.actionbar.set_visible(False)
-            self.selection_toolbar.actionbar.set_visible(True)
-            self.selection_toolbar._add_to_playlist_button.set_sensitive(False)
-            self.selection_toolbar._remove_from_playlist_button.set_sensitive(False)
-        else:
-            self.view.set_selection_mode(False)
-            self.header_bar.set_selection_mode(False)
-            self.player.actionbar.set_visible(self.player.currentTrack is not None)
-            self.selection_toolbar.actionbar.set_visible(False)
-
-    @log
-    def _on_cancel_button_clicked(self, button):
-        self.view.set_selection_mode(False)
-        self.header_bar.set_selection_mode(False)
-
-    @log
-    def _on_grilo_ready(self, data=None):
-        if (self.header_bar.get_stack().get_visible_child() == self and not self._init):
-            self._populate()
-        self.header_bar.get_stack().connect('notify::visible-child',
-                                            self._on_headerbar_visible)
-
-    @log
-    def _on_headerbar_visible(self, widget, param):
-        if self == widget.get_visible_child() and not self._init:
-            self._populate()
-
-    @log
-    def _on_view_selection_changed(self, widget):
-        items = self.view.get_selection()
-        self.selection_toolbar._add_to_playlist_button.\
-            set_sensitive(len(items) > 0)
-        self.selection_toolbar._remove_from_playlist_button.\
-            set_sensitive(len(items) > 0)
-        if len(items) > 0:
-            self.header_bar._selection_menu_label.set_text(
-                ngettext("Selected %d item", "Selected %d items", len(items)) % len(items))
-        else:
-            self.header_bar._selection_menu_label.set_text(_("Click on items to select them"))
-
-    @log
-    def _populate(self, data=None):
-        self._init = True
-        self.populate()
-
-    @log
-    def _on_selection_mode_changed(self, widget, data=None):
-        pass
-
-    @log
-    def populate(self):
-        print('populate')
-
-    @log
-    def _add_item(self, source, param, item, remaining=0, data=None):
-        self.window.notification.set_timeout(0)
-        if not item:
-            if remaining == 0:
-                self.view.set_model(self.model)
-                self.window.notification.dismiss()
-                self.view.show()
-            return
-
-        self._offset += 1
-        artist = item.get_string(Grl.METADATA_KEY_ARTIST)\
-            or item.get_author()\
-            or _("Unknown Artist")
-        title = albumArtCache.get_media_title(item)
-        # item.set_title(title)
-
-        _iter = self.model.append(None)
-        self.model.set(_iter,
-                       [0, 1, 2, 3, 4, 5, 7, 9],
-                       [str(item.get_id()), '', title,
-                        artist, self._loadingIcon, item,
-                        0, False])
-        self.cache.lookup(item, self._iconWidth, self._iconHeight, self._on_lookup_ready,
-                          _iter, artist, title)
-
-    @log
-    def _on_lookup_ready(self, icon, path, _iter):
-        if icon:
-            self.model.set_value(_iter, 4, icon)
-
-    @log
-    def _add_list_renderers(self):
-        pass
-
-    @log
-    def _on_item_activated(self, widget, id, path):
-        pass
-
-    @log
-    def _on_selection_mode_request(self, *args):
-        self.header_bar._select_button.clicked()
-
-    @log
-    def get_selected_tracks(self, callback):
-        callback([])
-
-    def _on_list_widget_star_render(self, col, cell, model, _iter, data):
-        pass
-
-
 # Class for the Empty View
 class Empty(Gtk.Stack):
 
@@ -1006,7 +803,7 @@ class Artists (ViewContainer):
                 self.items_selected_callback(self.items_selected)
 
 # #Benjamin code change
-class Playlistbenjy(PlayViewContainer):
+class Playlistbenjy(ViewContainer):
     __gsignals__ = {
         'playlists-loaded': (GObject.SignalFlags.RUN_LAST, None, ()),
         'playlist-songs-loaded': (GObject.SignalFlags.RUN_LAST, None, ()),
@@ -1970,7 +1767,7 @@ class Search(ViewContainer):
             # nope, can't do - reverting to Search
             grilo.search(search_term, self._add_search_item, self.model)
 
-
+# Benjamin 2
 class Playlist(ViewContainer):
     __gsignals__ = {
         'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
@@ -1985,7 +1782,7 @@ class Playlist(ViewContainer):
         self.playlists_sidebar = Gd.MainView()
         # self.playlists_sidebar = Gtk.Widget.hide()
 
-        ViewContainer.__init__(self, 'playlists', _("New Playlists"), window,
+        ViewContainer.__init__(self, 'new playlists', _("New Playlists"), window,
                                Gd.MainViewType.LIST, True, self.playlists_sidebar)
         self.view.get_generic_view().get_style_context()\
             .add_class('songs-list')
@@ -2305,7 +2102,7 @@ class Playlist(ViewContainer):
             return
         if self.model.get_value(_iter, 8) != self.errorIconName:
             if playlist is self.sentinel:
-                # _iter = self.playlists_model.iter_next(_iter)
+                # link for smart widget stack here
                 _iter = Widgets.AlbumWidget(self,player)
             self.player.set_playlist(
                 'Playlist', self.current_playlist.get_id(),
@@ -2561,21 +2358,11 @@ class Playlist(ViewContainer):
 
 # Remember smarting for finding
 class SmartWidget(ViewContainer):
-    __gsignals__ = {
-        'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
-        'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
-    }
-
-    def __repr__(self):
-        return '<Albums>'
-
     @log
     def __init__(self, window, player):
         self.playlists_sidebar = Gd.MainIconView()
         # self.playlists_sidebar = Gtk.Widget.hide()
-
-        ViewContainer.__init__(self, 'playlists', _("Smart Playlists"), window,
-                               Gd.MainViewType.ICON, False, self.playlists_sidebar)
+        ViewContainer.__init__(self, 'smartplaylists', _("Smart Playlist"), window, Gd.MainViewType.ICON)
 
         #set the grid
         self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=True,
@@ -2671,7 +2458,7 @@ class SmartWidget(ViewContainer):
         self.show_all()
 
     ######################################################################################################################
-
+    # Copied from playlists. Minus gsignal code (emit (_add_playlist_item_to_model
     @log
     def _on_changes_pending(self, data=None):
         #playlists.update_all_static_playlists()
@@ -2827,7 +2614,7 @@ class SmartWidget(ViewContainer):
             index = -1
         if not item:
             self.window.notification.dismiss()
-            self.emit('playlists-loaded')
+            # self.emit('playlists-loaded')
             return
         _iter = self.playlists_model.insert_with_valuesv(
             index,
@@ -3121,6 +2908,194 @@ class SmartWidget(ViewContainer):
         if event.type == Gdk.EventType.BUTTON_PRESS:
             path=self.iconviewer.get_selected_items()[0]
             self.activate_playlist(self, path)
+
+    def _on_item_activated(self, widget, id, path):
+        if self.star_handler.star_renderer_click:
+            self.star_handler.star_renderer_click = False
+            return
+
+                
+        try:
+            _iter = self.model.get_iter(path)
+        except TypeError:
+            return
+        if self.model.get_value(_iter, 8) != self.errorIconName:
+            if playlist is self.sentinel:
+                # _iter = self.playlists_model.iter_next(_iter)
+                _iter = Widgets.AlbumWidget(self,player)
+            self.player.set_playlist(
+                'Playlist', self.current_playlist.get_id(),
+                self.model, _iter, 5, 11
+            )
+            
+            self.player.set_playing(True)
+
+
+
+class NewAlbums(ViewContainer):
+
+    def __repr__(self):
+        return '<Albums>'
+
+    @log
+    def __init__(self, window, player):
+        ViewContainer.__init__(self, 'smartplaylists', _("Smart Playlist"), window, Gd.MainViewType.ICON)
+        # self._albumWidget = Widgets.AlbumWidget(player, self)
+        # self.player = player
+        # self.add(self._albumWidget)
+        # self.albums_selected = []
+        # self.items_selected = []
+        # self.items_selected_callback = None
+        # self._add_list_renderers()
+        self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=True,
+                             column_spacing=10, row_spacing=10)
+        self.add(self.grid)
+
+        #allow scrollable
+        self.scrolledwindow = Gtk.ScrolledWindow()
+        self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,
+                                       Gtk.PolicyType.AUTOMATIC)
+
+        #define paths to use
+        home_path = os.environ.get('HOME')
+        pic_path = os.path.join('Desktop', 'play-img')
+        button_path = os.path.join('Desktop', 'play-img', 'm1.jpg')
+        final_path = os.path.join(home_path, pic_path)
+        img1 = os.path.join(home_path,button_path)
+        
+
+
+        #Listing images (find how to set arrays to files)
+        pics_list = []
+        playlist_name = []
+        for root, dir, files in os.walk(final_path):
+            for fn in files:
+                playlist_name.append(fn)
+                f = os.path.join(root, fn)
+                pics_list.append(f)
+
+        #sets list of pictures and names from the files
+        self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str)
+        for name, picture in zip(playlist_name, pics_list):
+            pixes = GdkPixbuf.Pixbuf.new_from_file_at_scale(picture, 80, 80, True)
+            self.liststore.append([pixes, name])
+        
+        #set iteration for clicks
+        # for row in liststore:
+        #   select = liststore.get_selection()
+        #   if liststore[_iter]._on_selection_mode_request():
+
+        # self.store = Gtk.ListStore(str, str, float)
+        # self.array_list = ["Faves","F",1]
+        # self.treeiter = self.store.append(self.array_list)
+
+        # # Try using text for the list and clickable
+        # renderer = Gtk.CellRendererText()
+        # column = Gtk.TreeViewColumn("Smart Playlists", renderer, text=0)
+        # self.treeview.append_column(column)
+
+        # for row in store:
+        #     if store.get_iter_first():
+        #         self.button.connect_after('clicked', self.on_item_clicked)
+
+        self.iconviewer = Gtk.IconView(self.liststore)
+        # self.iconviewer.set_selection_mode(Gtk.SELECTION_SINGLE)
+
+        self.iconviewer.set_columns(4)
+        self.iconviewer.set_item_width(50)
+        self.iconviewer.set_pixbuf_column(0)
+        self.iconviewer.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
+        # self.iconviewer.connect("item-activated", self.iv_icon_activated)
+        self.iconviewer.connect("item-activated", self._on_item_activated)
+        self.iconviewer.connect("button-press-event", self.on_mouse_click)
+        self.iconviewer.connect("motion-notify-event", self.on_pointer_motion)
+
+        # tree view for setting the values
+        self.treeview = Gtk.TreeView(model=self.liststore)
+        renderer_pixbuf = Gtk.CellRendererPixbuf()
+        renderer_pixbuf.set_fixed_size(100,-1)
+        column_pixbuf = Gtk.TreeViewColumn('Smart Playlists', renderer_pixbuf, pixbuf=0)
+        column_pixbuf.set_sort_column_id(1) #set clickable sorting on row
+        column_pixbuf.set_alignment(0.5)
+        self.treeview.append_column(column_pixbuf) # append picture values
+        
+
+
+
+        # # selection in tree
+        # select = self.treeview.get_selection()
+        # select.connect("changed", on_tree_selection_changed)
+
+        self.button = Gtk.Button("playlist name")
+        self.button.connect_after('clicked', self.on_item_clicked)
+        
+        self.button2 = Gtk.Button("Faves")
+        self.button2.connect_after('clicked', self.on_item_clicked)
+
+
+        # Add to the grid
+        self.grid.add(self.scrolledwindow)
+        self.scrolledwindow.add(self.iconviewer)
+        self.grid.add(self.button)
+        # self.grid.attach(self.button2, 1, 0, 2, 1)
+        # # # grid.attach_next_to(self.button, button1, Gtk.PositionType.BOTTOM, 1, 2)
+        # # grid.attach_next_to(self.button, button3, Gtk.PositionType.RIGHT, 2, 1)
+        # self.grid.attach(self.button, 1, 2, 1, 1)
+        # self.grid.attach_next_to(self.treeview, self.button, Gtk.PositionType.BOTTOM, 1,2)
+
+        # Show all
+        self.show_all()
+
+    
+
+
+    # Destroy method 
+    def destroy(smartwindow, self):
+        Gtk.main_quit()
+
+
+    # #tree selection changed
+    # def on_tree_selection_changed(selection):
+    #   model, treeiter = selection.get_selected()
+    #   if treeiter != None:
+    #       print("You selected", model[treeiter][0])
+
+
+    # On item clicked
+    def on_item_clicked(self, widget):
+        button = Gtk.Button()
+        button.hide()
+        home_path = os.environ.get('HOME')
+        button_path = os.path.join('Desktop', 'play-img', 'm1.jpg')
+        img1 = os.path.join(home_path,button_path)
+        new_image = Gtk.Image()
+        new_image.set_from_file(button_path)
+        self.add(new_image)
+        # self.button.set_size_request(150,150)
+
+    # On clicked icon view item
+    def on_icon_view_selection_changed(self, widget):
+        self.on_item_activated(widget, widget.get_selected_items()[0])
+
+    def on_pointer_motion(self, widget, event):
+        path= self.iconviewer.get_path_at_pos(event.x, event.y)
+        if path !=None:
+            self.iconviewer.select_path(path)
+        # If we're outside of an item, deselect all items (turn off highlighting)
+        if path == None:
+            self.iconviewer.unselect_all()
+
+    # On Mouse click activated
+    def on_mouse_click(self,widget, event):
+        self.iconviewer.hide()
+        if event.type == Gdk.EventType.BUTTON_PRESS:
+            path=self.iconviewer.get_selected_items()[0]
+        #if right click activate pop-up menu
+        if event.button == 3 and path != None:
+            self.popup.popup(None, None, None, None, event.button, event.time)
+        #if left click, activate item to execute
+        if event.button == 1 and path != None:
+            self.iv_icon_activated(widget, path)
 
     def _on_item_activated(self, widget, id, path):
         if self.star_handler.star_renderer_click:
