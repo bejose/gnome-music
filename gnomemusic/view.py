@@ -638,7 +638,6 @@ class Artists (ViewContainer):
         self._add_list_renderers()
         self.view.get_generic_view().get_style_context().remove_class('content-view')
         self.show_all()
-        # self.view.hide()
 
     @log
     def _on_changes_pending(self, data=None):
@@ -1852,28 +1851,15 @@ class Playlist(ViewContainer):
             GObject.TYPE_INT
         )
         
-        # # On adding the sidebar object for smart playlists.
-        # obj = object()
-        # self.playlists_model.insert_with_valuesv(
-        #     0, [2,5], 
-        #     ["Smart Playlists", obj]
-        #     )
 
-
-        # self.jukerow = Gtk.list
         self.playlists_sidebar.set_view_type(Gd.MainViewType.LIST)
-        # self.playlists_sidebar.add(jukerow)
-        # self.Gtk.ListStore.append(["Smart Playlists", 10.10])
         self.playlists_sidebar.set_model(self.playlists_model)
         self.playlists_sidebar.set_hexpand(False)
         self.playlists_sidebar.get_style_context().add_class('side-panel')
         
         self.label = Gtk.Label()
-        self.label.set_markup("Smart Playlists")
-        self.stack.add_titled(self.label, "label", "A label")
-
-        # self._add_playlist_item(self.label)
-        
+        # self.label.set_markup("Smart Playlists")
+        # self.stack.add_titled(self.label, "label", "A label")
         self.playlists_sidebar.get_generic_view().get_selection().set_mode(
             Gtk.SelectionMode.SINGLE)
         self.playlists_sidebar.connect('item-activated', self._on_playlist_activated)
@@ -1882,13 +1868,6 @@ class Playlist(ViewContainer):
         self._grid.child_set_property(self.stack, 'height', 2)
         self._add_sidebar_renderers()
         self.playlists_sidebar.get_generic_view().get_style_context().remove_class('content-view')
-
-
-        # set iconview to edit
-        # self.iconviewer = Gtk.IconView(self.playlists_model)
-        # self.iconviewer.set_pixbuf_column(0)
-        # self.add(self.iconviewer)
-
         self.iter_to_clean = None
         self.iter_to_clean_model = None
         self.current_playlist = None
@@ -1898,6 +1877,12 @@ class Playlist(ViewContainer):
         self.really_delete = True
         self.songs_count = 0
         self._update_songs_count()
+
+        for _iter in self.playlists_model:
+            _iter = self.playlists_model.get_selection()
+            # When clicked, set to clicked path
+            path = self.playlists_model.get_path(_iter)
+            self.iconviewer.connect_after('clicked', self.activate_playlist(path))
         #########################
         if self.songs_count == 0: #and self.current_playlist == None:
             self.hide()
@@ -1912,7 +1897,6 @@ class Playlist(ViewContainer):
         playlists.connect('song-added-to-playlist', self._on_song_added_to_playlist)
         playlists.connect('song-removed-from-playlist', self._on_song_removed_from_playlist)
         self.show_all()
-        # self.hide()
 
     @log
     def _on_changes_pending(self, data=None):
@@ -2116,6 +2100,7 @@ class Playlist(ViewContainer):
         _iter = self.playlists_model.get_iter_first()
         while _iter:
             playlist = self.playlists_model.get_value(_iter, 5)
+            
             if playlist is self.sentinel:
                     _iter = self.playlists_model.iter_next(_iter)
                     continue
@@ -2247,7 +2232,7 @@ class Playlist(ViewContainer):
     @log
     def current_playlist_is_protected(self):
         current_playlist_id = self.current_playlist.get_id()
-        if current_playlist_id in StaticPlaylists.get_protected_ids() or current_playlist_id is self.sentinel:
+        if current_playlist_id in StaticPlaylists.get_protected_ids():
             return True
         else:
             return False
@@ -2340,11 +2325,18 @@ class Playlist(ViewContainer):
 
     @log
     def populate(self):
+        home_path = os.environ.get('HOME')
+        pic_path = os.path.join('Desktop', 'play-img')
+        button_path = os.path.join('Desktop', 'play-img', 'm1.jpg')
+        final_path = os.path.join(home_path, pic_path)
+        img1 = os.path.join(home_path,button_path)
+
         if grilo.tracker:
             self.playlists_model.clear()
             obj = object()
             self.playlists_model.insert_with_valuesv(
                 0, [2,5], ["Smart Playlists", obj])
+
             GLib.idle_add(grilo.populate_playlists, self._offset,
                           self._add_playlist_item)
 
@@ -2356,23 +2348,23 @@ class Playlist(ViewContainer):
 
 
 
-# Remember smarting for finding
-class SmartWidget(ViewContainer):
+# Benjamin 4
+class SmartWidge(ViewContainer):
     @log
     def __init__(self, window, player):
         self.playlists_sidebar = Gd.MainIconView()
         # self.playlists_sidebar = Gtk.Widget.hide()
-        ViewContainer.__init__(self, 'smartplaylists', _("Smart Playlist"), window, Gd.MainViewType.ICON)
+        ViewContainer.__init__(self, 'smartplaylists', _("Smart Playlist"), window, Gd.MainViewType.LIST, True, self.playlists_sidebar)
 
         #set the grid
         self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=True,
                              column_spacing=10, row_spacing=10)
-        # self.add(self.grid)
 
         #allow scrollable
         self.scrolledwindow = Gtk.ScrolledWindow()
         self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,
                                        Gtk.PolicyType.AUTOMATIC)
+
 
         #define paths to use
         home_path = os.environ.get('HOME')
@@ -2380,6 +2372,7 @@ class SmartWidget(ViewContainer):
         button_path = os.path.join('Desktop', 'play-img', 'm1.jpg')
         final_path = os.path.join(home_path, pic_path)
         img1 = os.path.join(home_path,button_path)
+
         
         self.playlists_model = Gtk.ListStore(
             GObject.TYPE_STRING,
@@ -2396,64 +2389,10 @@ class SmartWidget(ViewContainer):
             GObject.TYPE_INT
         )
 
-        #Listing images (find how to set arrays to files)
-        pics_list = []
-        playlist_name = []
-        for root, dir, files in os.walk(final_path):
-            for fn in files:
-                playlist_name.append(fn)
-                f = os.path.join(root, fn)
-                pics_list.append(f)
-
-        #sets picture list and playlist names
-        self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, Gtk.ListStore)
-        for name, picture in zip(playlist_name, pics_list):
-            self.pixel = GdkPixbuf.Pixbuf.new_from_file_at_scale(picture, 80, 80, True)
-            self.liststore.append([self.pixel, self.liststore])
-        
-        #set iteration for clicks
-        # for row in liststore:
-        #   select = liststore.get_selection()
-        #   if liststore[_iter]._on_selection_mode_request():
-
-        # self.store = Gtk.ListStore(str, str, float)
-        # self.array_list = ["Faves","F",1]
-        # self.treeiter = self.store.append(self.array_list)
-
-        # # Try using text for the list and clickable
-        # renderer = Gtk.CellRendererText()
-        # column = Gtk.TreeViewColumn("Smart Playlists", renderer, text=0)
-        # self.treeview.append_column(column)
-
-        # for row in store:
-        #     if store.get_iter_first():
-        #         self.button.connect_after('clicked', self.on_item_clicked)
-
-        self.playlists_sidebar.set_model(self.playlists_model)
-        self.iconviewer = Gtk.IconView(self.liststore)
-        self.iconviewer.set_columns(4)
-        self.iconviewer.set_item_width(50)
-        self.iconviewer.set_pixbuf_column(0)
-        self.iconviewer.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
-        self.iconviewer.connect("item-activated", self._on_item_activated)
-        self.iconviewer.connect("button-press-event", self.on_mouse_click)
-        self.iconviewer.connect("motion-notify-event", self.on_pointer_motion)
-
-
-        # tree view for setting the values
-        self.treeview = Gtk.TreeView(model=self.liststore)
-        renderer_pixbuf = Gtk.CellRendererPixbuf()
-        renderer_pixbuf.set_fixed_size(100,-1)
-        column_pixbuf = Gtk.TreeViewColumn('Smart Playlists', renderer_pixbuf, pixbuf=0)
-        column_pixbuf.set_sort_column_id(1) #set clickable sorting on row
-        column_pixbuf.set_alignment(0.5)
-        self.treeview.append_column(column_pixbuf) # append picture values
- 
-        # Add to the grid
-        self.add(self.grid)
-        self.grid.add(self.scrolledwindow)
-        self.scrolledwindow.add(self.iconviewer)
-        
+        pixbuf_object = GdkPixbuf.Pixbuf.new_from_file_at_scale(img1, 80, 80, True)
+        self.playlists_model.insert_with_valuesv(0, [2,4],
+            ["Smart playlists", pixbuf_object] 
+            )   
         # Show all
         self.show_all()
 
@@ -2932,171 +2871,314 @@ class SmartWidget(ViewContainer):
 
 
 
-class NewAlbums(ViewContainer):
+# Benjamin 3
+class SmartWidg(ViewContainer):
+    __gsignals__ = {
+        'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
+        'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
+    }
 
     def __repr__(self):
-        return '<Albums>'
+        return '<Playlist>'
 
     @log
     def __init__(self, window, player):
-        ViewContainer.__init__(self, 'smartplaylists', _("Smart Playlist"), window, Gd.MainViewType.ICON)
-        # self._albumWidget = Widgets.AlbumWidget(player, self)
-        # self.player = player
-        # self.add(self._albumWidget)
-        # self.albums_selected = []
-        # self.items_selected = []
-        # self.items_selected_callback = None
+        self.playlists_sidebar = Gd.MainView()
+        # self.playlists_sidebar = Gtk.Widget.hide()
+
+        ViewContainer.__init__(self, 'SM playlists', _("Smart try"), window,
+                               Gd.MainViewType.LIST, True, self.playlists_sidebar)
+        self.view.get_generic_view().get_style_context()\
+            .add_class('songs-list')
+        self._add_list_renderers()
+        self.view.get_generic_view().get_style_context().remove_class('content-view')
+
+        builder = Gtk.Builder()
+        builder.add_from_resource('/org/gnome/Music/PlaylistControls.ui')
+        
+        self.headerbar = builder.get_object('grid')
+        self.name_label = builder.get_object('playlist_name')
+        self.songs_count_label = builder.get_object('songs_count')
+        self.menubutton = builder.get_object('playlist_menubutton')
+        playlistPlayAction = Gio.SimpleAction.new('playlist_play', None)
+        playlistPlayAction.connect('activate', self._on_play_activate)
+        window.add_action(playlistPlayAction)
+        self.playlistDeleteAction = Gio.SimpleAction.new('playlist_delete', None)
+        self.playlistDeleteAction.connect('activate', self._on_delete_activate)
+        window.add_action(self.playlistDeleteAction)
+        self._grid.insert_row(0)
+        self._grid.attach(self.headerbar, 1, 0, 1, 1)
+
+        ##Begin icon widget
+        # self.iconswidget = Gd.MainView()
+        # self.iconswidget.set_view_type(Gd.MainViewType.ICON)
+        # self.iconswidget.set_hexpand(False)
+        
+        # ##Added below for the widget development
+        # self.iconswidget = Widgets.AlbumWidget(player,self)
+
+        # self.iconswidget = Gtk.Stack(
+        #         self.iconswidget = Gtk.Stack(
+        #             transition_type=Gtk.StackTransitionType.CROSSFADE,
+        # ))
+        # self._iconswidget = Gtk.Frame(
+        #     shadow_type=Gtk.ShadowType.NONE,
+        #     hexpand=True
+        # )
+        # self.add(iconswidget)
+        # self.iconswidget.add_named(self._iconswidget, "sidebar")
+        # self.iconswidget.set_visible_child_name("sidebar")
+        # self.view.set_shadow_type(Gtk.ShadowType.IN)
+        # self.view.get_style_context().add_class('side-panel')
+        # self.view.set_hexpand(False)
+        # self.view.get_generic_view().get_selection().set_mode(
+        #     Gtk.SelectionMode.SINGLE)
+        # self._grid.attach(self.iconswidget, 2, 0, 2, 2)
         # self._add_list_renderers()
-        self.grid = Gtk.Grid(column_homogeneous=True, row_homogeneous=True,
-                             column_spacing=10, row_spacing=10)
-        self.add(self.grid)
+        # self.view.get_generic_view().get_style_context().remove_class('content-view')
+        # ## self.show_all() 
+        # ## self.iconswidget.get_generic_view().get_selection().set_mode(
+        # ##     Gtk.SelectionMode.SINGLE)
 
-        #allow scrollable
-        self.scrolledwindow = Gtk.ScrolledWindow()
-        self.scrolledwindow.set_policy(Gtk.PolicyType.NEVER,
-                                       Gtk.PolicyType.AUTOMATIC)
 
-        #define paths to use
-        home_path = os.environ.get('HOME')
-        pic_path = os.path.join('Desktop', 'play-img')
-        button_path = os.path.join('Desktop', 'play-img', 'm1.jpg')
-        final_path = os.path.join(home_path, pic_path)
-        img1 = os.path.join(home_path,button_path)
+        self.playlists_model = Gtk.ListStore(
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GdkPixbuf.Pixbuf,
+            GObject.TYPE_OBJECT,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_INT,
+            GObject.TYPE_STRING,
+            GObject.TYPE_INT,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_INT
+        )
         
 
-
-        #Listing images (find how to set arrays to files)
-        pics_list = []
-        playlist_name = []
-        for root, dir, files in os.walk(final_path):
-            for fn in files:
-                playlist_name.append(fn)
-                f = os.path.join(root, fn)
-                pics_list.append(f)
-
-        #sets list of pictures and names from the files
-        self.liststore = Gtk.ListStore(GdkPixbuf.Pixbuf, str)
-        for name, picture in zip(playlist_name, pics_list):
-            pixes = GdkPixbuf.Pixbuf.new_from_file_at_scale(picture, 80, 80, True)
-            self.liststore.append([pixes, name])
+        self.playlists_sidebar.set_view_type(Gd.MainViewType.LIST)
+        self.playlists_sidebar.set_model(self.playlists_model)
+        self.playlists_sidebar.set_hexpand(False)
+        self.playlists_sidebar.get_style_context().add_class('side-panel')
         
-        #set iteration for clicks
-        # for row in liststore:
-        #   select = liststore.get_selection()
-        #   if liststore[_iter]._on_selection_mode_request():
+        self.label = Gtk.Label()
+        # self.label.set_markup("Smart Playlists")
+        # self.stack.add_titled(self.label, "label", "A label")
+        self.playlists_sidebar.get_generic_view().get_selection().set_mode(
+            Gtk.SelectionMode.SINGLE)
+        self.playlists_sidebar.connect('item-activated', self._on_playlist_activated)
+        self._grid.insert_column(0)
+        self._grid.child_set_property(self.stack, 'top-attach', 0)
+        self._grid.child_set_property(self.stack, 'height', 2)
+        self._add_sidebar_renderers()
+        self.playlists_sidebar.get_generic_view().get_style_context().remove_class('content-view')
+        self.iter_to_clean = None
+        self.iter_to_clean_model = None
+        self.current_playlist = None
+        self.current_playlist_index = None
+        self.pl_todelete = None
+        self.pl_todelete_index = None
+        self.really_delete = True
+        self.songs_count = 0
+        self._update_songs_count()
 
-        # self.store = Gtk.ListStore(str, str, float)
-        # self.array_list = ["Faves","F",1]
-        # self.treeiter = self.store.append(self.array_list)
-
-        # # Try using text for the list and clickable
-        # renderer = Gtk.CellRendererText()
-        # column = Gtk.TreeViewColumn("Smart Playlists", renderer, text=0)
-        # self.treeview.append_column(column)
-
-        # for row in store:
-        #     if store.get_iter_first():
-        #         self.button.connect_after('clicked', self.on_item_clicked)
-
-        self.iconviewer = Gtk.IconView(self.liststore)
-        # self.iconviewer.set_selection_mode(Gtk.SELECTION_SINGLE)
-
-        self.iconviewer.set_columns(4)
-        self.iconviewer.set_item_width(50)
-        self.iconviewer.set_pixbuf_column(0)
-        self.iconviewer.add_events(Gdk.EventMask.POINTER_MOTION_MASK)
-        # self.iconviewer.connect("item-activated", self.iv_icon_activated)
-        self.iconviewer.connect("item-activated", self._on_item_activated)
-        self.iconviewer.connect("button-press-event", self.on_mouse_click)
-        self.iconviewer.connect("motion-notify-event", self.on_pointer_motion)
-
-        # tree view for setting the values
-        self.treeview = Gtk.TreeView(model=self.liststore)
-        renderer_pixbuf = Gtk.CellRendererPixbuf()
-        renderer_pixbuf.set_fixed_size(100,-1)
-        column_pixbuf = Gtk.TreeViewColumn('Smart Playlists', renderer_pixbuf, pixbuf=0)
-        column_pixbuf.set_sort_column_id(1) #set clickable sorting on row
-        column_pixbuf.set_alignment(0.5)
-        self.treeview.append_column(column_pixbuf) # append picture values
-        
-
-
-
-        # # selection in tree
-        # select = self.treeview.get_selection()
-        # select.connect("changed", on_tree_selection_changed)
-
-        self.button = Gtk.Button("playlist name")
-        self.button.connect_after('clicked', self.on_item_clicked)
-        
-        self.button2 = Gtk.Button("Faves")
-        self.button2.connect_after('clicked', self.on_item_clicked)
-
-
-        # Add to the grid
-        self.grid.add(self.scrolledwindow)
-        self.scrolledwindow.add(self.iconviewer)
-        self.grid.add(self.button)
-        # self.grid.attach(self.button2, 1, 0, 2, 1)
-        # # # grid.attach_next_to(self.button, button1, Gtk.PositionType.BOTTOM, 1, 2)
-        # # grid.attach_next_to(self.button, button3, Gtk.PositionType.RIGHT, 2, 1)
-        # self.grid.attach(self.button, 1, 2, 1, 1)
-        # self.grid.attach_next_to(self.treeview, self.button, Gtk.PositionType.BOTTOM, 1,2)
-
-        # Show all
+        for _iter in self.playlists_model:
+            _iter = self.playlists_model.get_selection()
+            # When clicked, set to clicked path
+            path = self.playlists_model.get_path(_iter)
+            self.iconviewer.connect_after('clicked', self.activate_playlist(path))
+        #########################
+        if self.songs_count == 0: #and self.current_playlist == None:
+            self.hide()
+        else:
+            pass
+        self.window = window
+        # self._update_songs_count()
+        self.player = player
+        self.player.connect('playlist-item-changed', self.update_model)
+        playlists.connect('playlist-created', self._on_playlist_created)
+        playlists.connect('playlist-updated', self.on_playlist_update)
+        playlists.connect('song-added-to-playlist', self._on_song_added_to_playlist)
+        playlists.connect('song-removed-from-playlist', self._on_song_removed_from_playlist)
         self.show_all()
 
-    
+    @log
+    def _on_changes_pending(self, data=None):
+        #playlists.update_all_static_playlists()
+        pass
+
+    @log
+    def _add_list_renderers(self):
+        list_widget = self.view.get_generic_view()
+        cols = list_widget.get_columns()
+        cells = cols[0].get_cells()
+        cells[2].set_visible(False)
+        now_playing_symbol_renderer = Gtk.CellRendererPixbuf(xpad=0,
+                                                             xalign=0.5,
+                                                             yalign=0.5)
+
+        column_now_playing = Gtk.TreeViewColumn()
+        column_now_playing.set_fixed_width(48)
+        column_now_playing.pack_start(now_playing_symbol_renderer, False)
+        column_now_playing.set_cell_data_func(now_playing_symbol_renderer,
+                                              self._on_list_widget_icon_render, None)
+        list_widget.insert_column(column_now_playing, 0)
+
+        title_renderer = Gtk.CellRendererText(
+            xpad=0,
+            xalign=0.0,
+            yalign=0.5,
+            height=48,
+            ellipsize=Pango.EllipsizeMode.END
+        )
+        list_widget.add_renderer(title_renderer,
+                                 self._on_list_widget_title_render, None)
+        cols[0].add_attribute(title_renderer, 'text', 2)
+
+        self.star_handler._add_star_renderers(list_widget, cols)
+
+        duration_renderer = Gd.StyledTextRenderer(
+            xpad=32,
+            xalign=1.0
+        )
+        duration_renderer.add_class('dim-label')
+        list_widget.add_renderer(duration_renderer,
+                                 self._on_list_widget_duration_render, None)
+
+        artist_renderer = Gd.StyledTextRenderer(
+            xpad=32,
+            ellipsize=Pango.EllipsizeMode.END
+        )
+        artist_renderer.add_class('dim-label')
+        list_widget.add_renderer(artist_renderer,
+                                 self._on_list_widget_artist_render, None)
+        cols[0].add_attribute(artist_renderer, 'text', 3)
+
+        type_renderer = Gd.StyledTextRenderer(
+            xpad=32,
+            ellipsize=Pango.EllipsizeMode.END
+        )
+        type_renderer.add_class('dim-label')
+        list_widget.add_renderer(type_renderer,
+                                 self._on_list_widget_type_render, None)
+
+    @log
+    def _add_sidebar_renderers(self):
+        list_widget = self.playlists_sidebar.get_generic_view()
+
+        cols = list_widget.get_columns()
+        cells = cols[0].get_cells()
+        cells[1].set_visible(False)
+        cells[2].set_visible(False)
+        type_renderer = Gd.StyledTextRenderer(
+            xpad=16,
+            ypad=16,
+            ellipsize=Pango.EllipsizeMode.END,
+            xalign=0.0,
+            width=220
+        )
+        list_widget.add_renderer(type_renderer, lambda *args: None, None)
+        cols[0].clear_attributes(type_renderer)
+        cols[0].add_attribute(type_renderer, "text", 2)
+
+    def _on_list_widget_title_render(self, col, cell, model, _iter, data):
+        pass
+
+    def _on_list_widget_star_render(self, col, cell, model, _iter, data):
+        pass
+
+    def _on_list_widget_duration_render(self, col, cell, model, _iter, data):
+        if not model.iter_is_valid(_iter):
+            return
+
+        item = model.get_value(_iter, 5)
+        if item:
+            seconds = item.get_duration()
+            minutes = seconds // 60
+            seconds %= 60
+            cell.set_property('text', '%i:%02i' % (minutes, seconds))
+
+    def _on_list_widget_artist_render(self, col, cell, model, _iter, data):
+        pass
+
+    def _on_list_widget_type_render(self, coll, cell, model, _iter, data):
+        if not model.iter_is_valid(_iter):
+            return
+
+        item = model.get_value(_iter, 5)
+        if item:
+            cell.set_property('text', item.get_string(Grl.METADATA_KEY_ALBUM) or _("Unknown Album"))
+
+    def _on_list_widget_icon_render(self, col, cell, model, _iter, data):
+        if not self.player.currentTrackUri:
+            cell.set_visible(False)
+            return
+
+        if not model.iter_is_valid(_iter):
+            return
+
+        if model.get_value(_iter, 11) == DiscoveryStatus.FAILED:
+            cell.set_property('icon-name', self.errorIconName)
+            cell.set_visible(True)
+        elif model.get_value(_iter, 5).get_url() == self.player.currentTrackUri:
+            cell.set_property('icon-name', self.nowPlayingIconName)
+            cell.set_visible(True)
+        else:
+            cell.set_visible(False)
+
+    @log
+    def _populate(self):
+        self._init = True
+        self.window._init_loading_notification()
+        self.populate()
+
+    @log
+    def update_model(self, player, playlist, currentIter):
+        if self.iter_to_clean:
+            self.iter_to_clean_model.set_value(self.iter_to_clean, 10, False)
+        if playlist != self.model:
+            return False
+
+        self.model.set_value(currentIter, 10, True)
+        if self.model.get_value(currentIter, 8) != self.errorIconName:
+            self.iter_to_clean = currentIter.copy()
+            self.iter_to_clean_model = self.model
+
+        return False
+
+    @log
+    def _add_playlist_item(self, source, param, item, remaining=0, data=None):
+        self._add_playlist_item_to_model(item)
+
+    @log
+    def _add_playlist_item_to_model(self, item, index=None):
+        self.window.notification.set_timeout(0)
+        if index is None:
+            index = -1
+        if not item:
+            self.window.notification.dismiss()
+            self.emit('playlists-loaded')
+            return
 
 
-    # Destroy method 
-    def destroy(smartwindow, self):
-        Gtk.main_quit()
+        _iter = self.playlists_model.insert_with_valuesv(
+            index,
+            [2, 5],
+            [albumArtCache.get_media_title(item), item])
+        if self.playlists_model.iter_n_children(None) == 1:
+            _iter = self.playlists_model.get_iter_first()
+            selection = self.playlists_sidebar.get_generic_view().get_selection()
+            selection.select_iter(_iter)
+            self.playlists_sidebar.emit('item-activated', '0',
+                                        self.playlists_model.get_path(_iter))
 
+    # def smartplaybox(self, widget, id, path):
+    #     ViewContainer.__init__(self, 'smartplaybox', _("Smart Playlists"), window, Gd.MainViewType.ICON)
+        
+    #     pass
 
-    # #tree selection changed
-    # def on_tree_selection_changed(selection):
-    #   model, treeiter = selection.get_selected()
-    #   if treeiter != None:
-    #       print("You selected", model[treeiter][0])
-
-
-    # On item clicked
-    def on_item_clicked(self, widget):
-        button = Gtk.Button()
-        button.hide()
-        home_path = os.environ.get('HOME')
-        button_path = os.path.join('Desktop', 'play-img', 'm1.jpg')
-        img1 = os.path.join(home_path,button_path)
-        new_image = Gtk.Image()
-        new_image.set_from_file(button_path)
-        self.add(new_image)
-        # self.button.set_size_request(150,150)
-
-    # On clicked icon view item
-    def on_icon_view_selection_changed(self, widget):
-        self.on_item_activated(widget, widget.get_selected_items()[0])
-
-    def on_pointer_motion(self, widget, event):
-        path= self.iconviewer.get_path_at_pos(event.x, event.y)
-        if path !=None:
-            self.iconviewer.select_path(path)
-        # If we're outside of an item, deselect all items (turn off highlighting)
-        if path == None:
-            self.iconviewer.unselect_all()
-
-    # On Mouse click activated
-    def on_mouse_click(self,widget, event):
-        self.iconviewer.hide()
-        if event.type == Gdk.EventType.BUTTON_PRESS:
-            path=self.iconviewer.get_selected_items()[0]
-        #if right click activate pop-up menu
-        if event.button == 3 and path != None:
-            self.popup.popup(None, None, None, None, event.button, event.time)
-        #if left click, activate item to execute
-        if event.button == 1 and path != None:
-            self.iv_icon_activated(widget, path)
-
+    @log
     def _on_item_activated(self, widget, id, path):
         if self.star_handler.star_renderer_click:
             self.star_handler.star_renderer_click = False
@@ -3109,7 +3191,7 @@ class NewAlbums(ViewContainer):
             return
         if self.model.get_value(_iter, 8) != self.errorIconName:
             if playlist is self.sentinel:
-                # _iter = self.playlists_model.iter_next(_iter)
+                # link for smart widget stack here
                 _iter = Widgets.AlbumWidget(self,player)
             self.player.set_playlist(
                 'Playlist', self.current_playlist.get_id(),
@@ -3117,3 +3199,383 @@ class NewAlbums(ViewContainer):
             )
             
             self.player.set_playing(True)
+
+    @log
+    def on_playlist_update(self, widget, playlist_id):
+        _iter = self.playlists_model.get_iter_first()
+        while _iter:
+            playlist = self.playlists_model.get_value(_iter, 5)
+            if playlist is self.sentinel:
+                    _iter = self.playlists_model.iter_next(_iter)
+                    continue
+            if str(playlist_id) == playlist.get_id() and self.current_playlist == playlist:
+                path = self.playlists_model.get_path(_iter)
+                GLib.idle_add(self._on_playlist_activated, None, None, path)
+                break
+            _iter = self.playlists_model.iter_next(_iter)
+
+
+    @log
+    def on_iconswidget_activated():
+        pass
+
+    @log
+    def activate_playlist(self, playlist_id):
+
+        def find_and_activate_playlist():
+            for playlist in self.playlists_model:
+                if playlist[5].get_id() == playlist_id:
+                    selection = self.playlists_sidebar.get_generic_view().get_selection()
+                    if selection.iter_is_selected(playlist.iter):
+                        self._on_play_activate(None)
+                    else:
+                        selection.select_iter(playlist.iter)
+                        handler = 0
+
+                        def songs_loaded_callback(view):
+                            self.disconnect(handler)
+                            self._on_play_activate(None)
+
+                        handler = self.connect('playlist-songs-loaded', songs_loaded_callback)
+                        self.playlists_sidebar.emit('item-activated', '0', playlist.path)
+
+                    return
+
+        if self._init:
+            find_and_activate_playlist()
+        else:
+            handler = 0
+
+            def playlists_loaded_callback(view):
+                self.disconnect(handler)
+                def_handler = 0
+
+                def songs_loaded_callback(view):
+                    self.disconnect(def_handler)
+                    find_and_activate_playlist()
+
+                # Skip load of default playlist
+                def_handler = self.connect('playlist-songs-loaded', songs_loaded_callback)
+
+            handler = self.connect('playlists-loaded', playlists_loaded_callback)
+
+            self._populate()
+
+
+    @log
+    def _on_playlist_activated(self, widget, item_id, path):
+        _iter = self.playlists_model.get_iter(path)
+        playlist_name = self.playlists_model.get_value(_iter, 2)
+        playlist = self.playlists_model.get_value(_iter, 5)
+
+        self.current_playlist = playlist
+        self.name_label.set_text(playlist_name)
+        self.current_playlist_index = int(path.to_string())
+
+        # if the active queue has been set by this playlist,
+        # use it as model, otherwise build the liststore
+        self.view.set_model(None)
+        self.model.clear()
+        self.songs_count = 0
+        GLib.idle_add(grilo.populate_playlist_songs, playlist, self._add_item)
+
+        # disable delete button if current playlist is a smart playlist
+        if self.current_playlist_is_protected():
+            self.playlistDeleteAction.set_enabled(False)
+        else:
+            self.playlistDeleteAction.set_enabled(True)
+
+    @log
+    def _add_item(self, source, param, item, remaining=0, data=None):
+        self._add_item_to_model(item, self.model)
+        if remaining == 0:
+            self.view.set_model(self.model)
+
+    @log
+    def _add_item_to_model(self, item, model):
+        if not item:
+            self._update_songs_count()
+            if self.player.playlist:
+                self.player._validate_next_track()
+            self.emit('playlist-songs-loaded')
+            return
+        self._offset += 1
+        title = albumArtCache.get_media_title(item)
+        item.set_title(title)
+        artist = item.get_string(Grl.METADATA_KEY_ARTIST)\
+            or item.get_author()\
+            or _("Unknown Artist")
+        model.insert_with_valuesv(
+            -1,
+            [2, 3, 5, 9],
+            [title, artist, item, bool(item.get_lyrics())])
+        self.songs_count += 1
+
+    @log
+    def _update_songs_count(self):
+        self.songs_count_label.set_text(
+            ngettext("%d Song", "%d Songs", self.songs_count)
+            % self.songs_count)
+
+    @log
+    def _on_selection_mode_changed(self, widget, data=None):
+        self.playlists_sidebar.set_sensitive(not self.header_bar._selectionMode)
+        self.menubutton.set_sensitive(not self.header_bar._selectionMode)
+
+    @log
+    def _on_play_activate(self, menuitem, data=None):
+        _iter = self.model.get_iter_first()
+        if not _iter:
+            return
+
+        self.view.get_generic_view().get_selection().\
+            select_path(self.model.get_path(_iter))
+        self.view.emit('item-activated', '0',
+                       self.model.get_path(_iter))
+
+    @log
+    def current_playlist_is_protected(self):
+        current_playlist_id = self.current_playlist.get_id()
+        if current_playlist_id in StaticPlaylists.get_protected_ids():
+            return True
+        else:
+            return False
+
+    @log
+    def stage_playlist_for_deletion(self):
+        self.model.clear()
+        self.pl_todelete_index = self.current_playlist_index
+        _iter = self.playlists_sidebar.get_generic_view().get_selection().get_selected()[1]
+        self.pl_todelete = self.playlists_model.get_value(_iter, 5)
+      
+        if not _iter:
+            return
+
+        iter_next = self.playlists_model.iter_next(_iter)\
+            or self.playlists_model.iter_previous(_iter)
+        self.playlists_model.remove(_iter)
+
+        if iter_next:
+            selection = self.playlists_sidebar.get_generic_view().get_selection()
+            selection.select_iter(iter_next)
+            self.playlists_sidebar.emit('item-activated', '0',
+                                        self.playlists_model.get_path(iter_next))
+
+    @log
+    def undo_playlist_deletion(self):
+        self._add_playlist_item_to_model(self.pl_todelete, self.pl_todelete_index)
+
+    @log
+    def _on_delete_activate(self, menuitem, data=None):
+        self.window._init_playlist_removal_notification()
+        self.stage_playlist_for_deletion()
+
+    @log
+    def _on_playlist_created(self, playlists, item):
+        self._add_playlist_item_to_model(item)
+        if self.playlists_model.iter_n_children(None) == 1:
+            _iter = self.playlists_model.get_iter_first()
+            selection = self.playlists_sidebar.get_generic_view().get_selection()
+            selection.select_iter(_iter)
+            self.playlists_sidebar.emit('item-activated', '0',
+                                        self.playlists_model.get_path(_iter))
+
+    @log
+    def _on_song_added_to_playlist(self, playlists, playlist, item):
+        if self.current_playlist and \
+           playlist.get_id() == self.current_playlist.get_id():
+            self._add_item_to_model(item, self.model)
+
+    @log
+    def _on_song_removed_from_playlist(self, playlists, playlist, item):
+        if self.current_playlist and \
+           playlist.get_id() == self.current_playlist.get_id():
+            model = self.model
+        else:
+            return
+
+        update_playing_track = False
+        for row in model:
+            if row[5].get_id() == item.get_id():
+                # Is the removed track now being played?
+                if self.current_playlist and \
+                   playlist.get_id() == self.current_playlist.get_id():
+                    if self.player.currentTrack is not None and self.player.currentTrack.valid():
+                        currentTrackpath = self.player.currentTrack.get_path().to_string()
+                        if row.path is not None and row.path.to_string() == currentTrackpath:
+                            update_playing_track = True
+
+                nextIter = model.iter_next(row.iter)
+                model.remove(row.iter)
+
+                # Reload the model and switch to next song
+                if update_playing_track:
+                    if nextIter is None:
+                        # Get first track if next track is not valid
+                        nextIter = model.get_iter_first()
+                        if nextIter is None:
+                            # Last track was removed
+                            return
+
+                    self.iter_to_clean = None
+                    self.update_model(self.player, model, nextIter)
+                    self.player.set_playlist('Playlist', playlist.get_id(), model, nextIter, 5, 11)
+                    self.player.set_playing(True)
+
+                # Update songs count
+                self.songs_count -= 1
+                self._update_songs_count()
+                return
+
+    @log
+    def populate(self):
+        if grilo.tracker:
+            self.playlists_model.clear()
+            obj = object()
+            self.playlists_model.insert_with_valuesv(
+                0, [2,5], ["Smart Playlists", obj])
+            GLib.idle_add(grilo.populate_playlists, self._offset,
+                          self._add_playlist_item)
+
+    @log
+    def get_selected_tracks(self, callback):
+        callback([self.model.get_value(self.model.get_iter(path), 5)
+                  for path in self.view.get_selection()])
+
+
+
+class SmartWidget(ViewContainer):
+    __gsignals__ = {
+        'playlists-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
+        'playlist-songs-loaded': (GObject.SignalFlags.RUN_FIRST, None, ()),
+    }
+
+    @log
+    def __init__(self, window, player):
+        ViewContainer.__init__(self, 'smart', _("smart playlist"), window, Gd.MainViewType.ICON)
+
+        self.playlists_model = Gtk.ListStore(
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GObject.TYPE_STRING,
+            GdkPixbuf.Pixbuf,
+            GObject.TYPE_OBJECT,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_INT,
+            GObject.TYPE_STRING,
+            GObject.TYPE_INT,
+            GObject.TYPE_BOOLEAN,
+            GObject.TYPE_INT
+        )
+
+        # ViewContainer.__init__(self, 'albums', _("Albums"), window, Gd.MainViewType.ICON)
+        # self._albumWidget = Widgets.AlbumWidget(player, self)
+        self.player = player
+        # self.add(self._albumWidget)
+        self.albums_selected = []
+        self.items_selected = []
+        self.items_selected_callback = None
+        self._add_list_renderers()
+        self.view.set_model(self.model)
+        self.view.show_all()
+        self.show_all()
+
+    @log
+    def _on_changes_pending(self, data=None):
+        if (self._init and self.header_bar._selectionMode is False):
+            self._offset = 0
+            self._init = True
+            GLib.idle_add(self.populate)
+            grilo.changes_pending['Albums'] = False
+
+    @log
+    def _on_selection_mode_changed(self, widget, data=None):
+        if self.header_bar._selectionMode is False and grilo.changes_pending['Albums'] is True:
+            self._on_changes_pending()
+
+    @log
+    def _back_button_clicked(self, widget, data=None):
+        self.header_bar.reset_header_title()
+        self.set_visible_child(self._grid)
+
+    @log
+    def _on_item_activated(self, widget, id, path):
+        if self.star_handler.star_renderer_click:
+            self.star_handler.star_renderer_click = False
+            return
+
+        try:
+            _iter = self.model.get_iter(path)
+        except TypeError:
+            return
+        title = self.model.get_value(_iter, 2)
+        self._artist = self.model.get_value(_iter, 3)
+        item = self.model.get_value(_iter, 5)
+        self._albumWidget.update(self._artist, title, item,
+                                 self.header_bar, self.selection_toolbar)
+        self.header_bar.set_state(ToolbarState.CHILD_VIEW)
+        self._escaped_title = albumArtCache.get_media_title(item)
+        self.header_bar.header_bar.set_title(self._escaped_title)
+        self.header_bar.header_bar.sub_title = self._artist
+        self.set_visible_child(self._albumWidget)
+
+    @log
+    def update_title(self):
+        self.header_bar.header_bar.set_title(self._escaped_title)
+        self.header_bar.header_bar.sub_title = self._artist
+
+    @log
+    def populate(self):
+        home_path = os.environ.get('HOME')
+        pic_path = os.path.join('Desktop', 'play-img')
+        button_path = os.path.join('Desktop', 'play-img', 'm1.jpg')
+        final_path = os.path.join(home_path, pic_path)
+        img1 = os.path.join(home_path,button_path)
+
+        pixbuf_object = GdkPixbuf.Pixbuf.new_from_file_at_scale(img1, 90, 90, True)
+        self.model.insert_with_valuesv(0, [2,4],
+            ["Smart playlists", pixbuf_object])
+
+
+        # if grilo.tracker:
+
+        #     self.window._init_loading_notification()
+        #     GLib.idle_add(grilo.populate_albums, self._offset, self._add_item)
+
+    @log
+    def get_selected_tracks(self, callback):
+        if self.header_bar._state == ToolbarState.CHILD_VIEW:
+            items = []
+            for path in self._albumWidget.view.get_selection():
+                _iter = self._albumWidget.model.get_iter(path)
+                items.append(self._albumWidget.model.get_value(_iter, 5))
+            callback(items)
+        else:
+            self.items_selected = []
+            self.items_selected_callback = callback
+            self.albums_index = 0
+            self.albums_selected = [self.model.get_value(self.model.get_iter(path), 5)
+                                    for path in self.view.get_selection()]
+            if len(self.albums_selected):
+                self._get_selected_album_songs()
+
+    @log
+    def _get_selected_album_songs(self):
+        grilo.populate_album_songs(
+            self.albums_selected[self.albums_index],
+            self._add_selected_item)
+        self.albums_index += 1
+
+    @log
+    def _add_selected_item(self, source, param, item, remaining=0, data=None):
+        if item:
+            self.items_selected.append(item)
+        if remaining == 0:
+            if self.albums_index < len(self.albums_selected):
+                self._get_selected_album_songs()
+            else:
+                self.items_selected_callback(self.items_selected)
+
+
+    
